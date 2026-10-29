@@ -11,7 +11,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * **Instagram - View stories anonymously:** A story you've just watched with `Gray out stories you've watched` on stays where it was in the tray until you pull down to refresh. It used to jump to the right the moment you closed it. Reported in #377.
-* **Tooling:** Patching for a phone without `-Apk` takes the declared Instagram build from the fixture folder the way the release gate does, split `.apks` bundles included. It used to skip an `.apks` and could pick up any file with the version in its name.
+* **Tooling:** Patching for a phone without `-Apk` takes the declared Instagram build from the fixture folder the way the release gate does, `.apks` bundles included. It used to skip `.apks` and take any file with the version in its name.
 
 ## 0.0.17 (2026-10-28)
 
