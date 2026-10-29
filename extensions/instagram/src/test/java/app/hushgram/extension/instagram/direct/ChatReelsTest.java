@@ -147,4 +147,26 @@ public class ChatReelsTest {
         assertTrue("back on", ChatReels.stopCached(Source.DIRECT));
         assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
     }
+
+    /** The loading placeholder is left out only after a chat's reels with the stop on, never added (#390). */
+    @Test
+    public void thePlaceholderIsLeftOutOnlyAfterAChatsReels() {
+        assertTrue("off to start, Instagram's placeholder stays", ChatReels.placeholder(Source.DIRECT, true));
+        Settings.STOP_AFTER_CHAT_REELS.save(true);
+        assertFalse("a chat's viewer", ChatReels.placeholder(Source.DIRECT, true));
+        assertTrue("the Reels tab", ChatReels.placeholder(Source.CLIPS_TAB, true));
+        assertTrue("search in chats", ChatReels.placeholder(Source.DIRECT_SEARCH, true));
+        assertTrue("no source", ChatReels.placeholder(null, true));
+        for (Object source : new Object[] {Source.DIRECT, Source.CLIPS_TAB, null}) {
+            assertFalse("Instagram asked for none: " + source, ChatReels.placeholder(source, false));
+        }
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertTrue("paused", ChatReels.placeholder(Source.DIRECT, true));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertTrue("no context", ChatReels.placeholder(Source.DIRECT, true)));
+        assertFalse("back on", ChatReels.placeholder(Source.DIRECT, true));
+    }
 }

@@ -92,6 +92,19 @@ internal const val CACHED_REEL = "ClipsViewerFlashMediaController.insertItemToAd
 /** Where a Reels viewer was opened from, DIRECT for a chat. Redex keeps the name. */
 internal const val VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
 
+internal const val PLACEHOLDER = "$CHAT_REELS->placeholder(Ljava/lang/Object;Z)Z"
+
+/**
+ * The trace name of the Reels viewer adapter's add of reels (LX/045b;->A0a on 453's 385914283,
+ * ClipsViewerAdapter.addClipsItems). With its flag set it puts Instagram's loading placeholder, a
+ * gray reel, after the reels it adds, for the next ones to replace. With the viewer's other ways to
+ * more reels stopped nothing replaces it, so a chat's reels end on it. Only that add loads it.
+ */
+internal const val ADD_REELS = "ClipsViewerAdapter.addClipsItems"
+
+private const val LIST = "Ljava/util/List;"
+private const val POSITION = "Ljava/lang/Integer;"
+
 /**
  * Swiping up on a reel opened from a chat goes through the other reels shared in that chat before
  * any suggested reels (#350), and with the second switch stops after them (#390). In the default
@@ -115,10 +128,12 @@ val swipeChatReelsPatch = bytecodePatch(
         val end = findChatReelsEnd()
         val more = findMoreReels()
         val cached = findCachedReels()
+        val placeholders = findPlaceholders()
         chainChatReels(read)
         stopAfterChatReels(end)
         stopMoreReels(more)
         stopCachedReels(cached)
+        skipPlaceholders(placeholders)
         enableStatus("chatReels")
     }
 }
@@ -350,5 +365,103 @@ internal fun BytecodePatchContext.stopCachedReels(found: CachedReels = findCache
             return-void
         """,
         ExternalLabel("instagram", insert.getInstruction(0)),
+    )
+}
+
+/**
+ * The adapter's add of reels and its placeholder at a position, the adapter's [VIEWER_CONFIG] field
+ * the add reads, and the config's [VIEWER_SOURCE] field it reads.
+ */
+internal class Placeholders(val add: MutableMethod, val shimmer: MutableMethod, val config: String, val source: String)
+
+/**
+ * Finds the adapter's add of reels and its placeholder at a position before anything changes. The
+ * add is the one method loading [ADD_REELS], an instance method handed reels and a flag and returning
+ * nothing, with two locals for the hook and nothing jumping to its first instruction. It reads one
+ * [VIEWER_CONFIG] field of its own class and one [VIEWER_SOURCE] field of the config. The placeholder
+ * (LX/045b;->A0X on 385914283) is the one instance method of the same class handed a position that
+ * calls the add, with a local and nothing jumping to its first instruction. Fails when any of it
+ * isn't so.
+ */
+internal fun BytecodePatchContext.findPlaceholders(): Placeholders {
+    val adds = classesLoadingString(ADD_REELS).flatMap { holder -> holder.methods.filter { loadsString(it, ADD_REELS) } }
+    val add = adds.singleOrNull() ?: refuse("expected one method loading \"$ADD_REELS\", found ${adds.size}")
+    val takes = add.parameterTypes.map(CharSequence::toString)
+    val where = "${add.definingClass}->${add.name}"
+    if (AccessFlags.STATIC.isSet(add.accessFlags) || add.returnType != "V" || takes != listOf(LIST, "Z")) {
+        refuse("$where(${takes.joinToString("")})${add.returnType} isn't an instance add handed reels and a flag")
+    }
+    if (add.localRegisterCount() < 2) refuse("$where has fewer than two locals for the answer")
+    if (0 in add.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
+
+    fun reads(owner: String, type: String) = add.implementation!!.instructions.mapNotNull { instruction ->
+        if (instruction.opcode != Opcode.IGET_OBJECT) return@mapNotNull null
+        val field = (instruction as ReferenceInstruction).reference as FieldReference
+        if (field.definingClass == owner && field.type == type) "$field" else null
+    }.distinct()
+    val configs = reads(add.definingClass, VIEWER_CONFIG)
+    val config = configs.singleOrNull() ?: refuse("$where reads ${configs.size} $VIEWER_CONFIG fields of its adapter, not one")
+    val sources = reads(VIEWER_CONFIG, VIEWER_SOURCE)
+    val source = sources.singleOrNull() ?: refuse("$where reads ${sources.size} $VIEWER_SOURCE fields of its config, not one")
+
+    val shimmers = classDefBy(add.definingClass).methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+            method.parameterTypes.map(CharSequence::toString) == listOf(POSITION) &&
+            method.implementation?.instructions?.any { instruction ->
+                val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+                call != null && call.definingClass == add.definingClass && call.name == add.name &&
+                    call.parameterTypes.map(CharSequence::toString) == takes
+            } == true
+    }
+    val shimmer = shimmers.singleOrNull()
+        ?: refuse("expected one method of ${add.definingClass} handed a position that calls ${add.name}, found ${shimmers.size}")
+    val at = "${shimmer.definingClass}->${shimmer.name}"
+    if (shimmer.localRegisterCount() < 1) refuse("$at has no local for the answer")
+    if (0 in shimmer.jumpTargets()) refuse("a jump or exception handler enters $at at its first instruction")
+
+    val methods = mutableClassDefBy(add.definingClass).methods
+    val mutableAdd = methods.single { it.name == add.name && it.parameterTypes.map(CharSequence::toString) == takes }
+    val mutableShimmer = methods.single { it.name == shimmer.name && it.parameterTypes.map(CharSequence::toString) == listOf(POSITION) }
+    return Placeholders(mutableAdd, mutableShimmer, config, source)
+}
+
+/**
+ * Has the adapter's add ask the extension through [PLACEHOLDER] whether it puts its placeholder after
+ * the reels it adds, handing it the viewer's source and Instagram's flag, and writes the answer back
+ * into the flag. A viewer opened from a chat with the switch on gets none. The placeholder at a
+ * position asks [STOP_CACHED] first and returns on a yes. Without a position it goes on to Instagram,
+ * whose add then asks. Everything else is Instagram's.
+ */
+internal fun BytecodePatchContext.skipPlaceholders(found: Placeholders = findPlaceholders()) {
+    val add = found.add
+    add.addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v0, p0
+            iget-object v0, v0, ${found.config}
+            if-eqz v0, :instagram
+            iget-object v0, v0, ${found.source}
+            move/from16 v1, p2
+            invoke-static { v0, v1 }, $PLACEHOLDER
+            move-result v1
+            move/from16 p2, v1
+        """,
+        ExternalLabel("instagram", add.getInstruction(0)),
+    )
+    val shimmer = found.shimmer
+    shimmer.addInstructionsWithLabels(
+        0,
+        """
+            if-eqz p1, :instagram
+            move-object/from16 v0, p0
+            iget-object v0, v0, ${found.config}
+            if-eqz v0, :instagram
+            iget-object v0, v0, ${found.source}
+            invoke-static { v0 }, $STOP_CACHED
+            move-result v0
+            if-eqz v0, :instagram
+            return-void
+        """,
+        ExternalLabel("instagram", shimmer.getInstruction(0)),
     )
 }

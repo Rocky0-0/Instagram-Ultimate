@@ -23,7 +23,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Instagram keeps cached for the Reels tab, without asking the server. The patch asks
  * {@link #stop()} before a viewer opened from a chat asks for more, and before it asks for that
  * second side, and {@link #stopCached(Object)} before a cached reel goes in, so with the second
- * switch on it ends after the chat's reels (#390).
+ * switch on it ends after the chat's reels (#390). The viewer also puts a loading placeholder
+ * after the reels it adds, for the next ones to replace, which {@link #placeholder(Object, boolean)}
+ * leaves out there, so the last page is the chat's last reel and not a gray one that never loads.
  */
 public final class ChatReels {
     /** The name of Instagram's viewer source for a reel opened from a chat. */
@@ -70,5 +72,14 @@ public final class ChatReels {
      */
     public static boolean stopCached(Object source) {
         return source instanceof Enum && CHAT_SOURCE.equals(((Enum<?>) source).name()) && stop();
+    }
+
+    /**
+     * Whether the viewer puts its loading placeholder after the reels it adds: Instagram's [ghost],
+     * except no while {@link #stopCached(Object)} is yes for [source], since nothing would replace
+     * it. Never throws.
+     */
+    public static boolean placeholder(Object source, boolean ghost) {
+        return ghost && !stopCached(source);
     }
 }

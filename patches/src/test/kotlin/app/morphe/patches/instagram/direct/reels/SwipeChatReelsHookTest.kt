@@ -47,6 +47,7 @@ class SwipeChatReelsHookTest {
     private val viewer = "Lfixture/Viewer;"
     private val controller = "Lfixture/FlashController;"
     private val item = "Lfixture/Item;"
+    private val adapter = "Lfixture/Adapter;"
 
     /** The hooks the patch writes are in the ChatReels the bundle ships, public and static. */
     @Test
@@ -54,7 +55,7 @@ class SwipeChatReelsHookTest {
         val declared = ExtensionDex.classDef(CHAT_REELS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(CHAIN, STOP, STOP_CACHED)) assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        for (hook in listOf(CHAIN, STOP, STOP_CACHED, PLACEHOLDER)) assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
     }
 
     /** The dual paging request asks the extension first, for the stock side of a chat's source only (#390). */
@@ -481,6 +482,193 @@ class SwipeChatReelsHookTest {
             ImmutableField(controller, "DEFAULT", VIEWER_SOURCE, final or AccessFlags.STATIC.value, null, null, null) +
             ImmutableField(controller, "module", "Ljava/lang/String;", final, null, null, null)
         return listOf(classDef(controller, puts + execute, fields = fields))
+    }
+
+    /** The adapter's add asks the extension for its placeholder flag, and its placeholder at a position asks first (#390). */
+    @Test
+    fun thePlaceholdersAskFirst() {
+        val context = PatchContexts.of(adapterClasses())
+        val found = context.findPlaceholders()
+        val add = found.add.implementation!!.instructions.count()
+        val shimmer = found.shimmer.implementation!!.instructions.count()
+
+        context.skipPlaceholders(found)
+
+        assertEquals("$adapter->config:$VIEWER_CONFIG", found.config)
+        assertEquals("$VIEWER_CONFIG->source:$VIEWER_SOURCE", found.source)
+        val methods = context.mutableClassDefBy(adapter).methods
+        assertAsksForPlaceholders("stand-in", methods.single { it.name == "add" }, methods.single { it.name == "shimmer" }, found, add, shimmer)
+        for (name in listOf("update", "scroll")) {
+            assertTrue("$name was touched", methods.single { it.name == name }.code().none { it.referenceText() in setOf<String?>(PLACEHOLDER, STOP_CACHED) })
+        }
+    }
+
+    /** A build the placeholder finder can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun aBuildThePlaceholderFinderCantReadFailsBeforeAnythingChanges() {
+        val add = "$adapter->add"
+        val shape = "isn't an instance add handed reels and a flag"
+        val shimmer = "$adapter->shimmer"
+        val cases = listOf(
+            adapterClasses(adds = 0) to "expected one method loading \"$ADD_REELS\", found 0",
+            adapterClasses(adds = 2) to "expected one method loading \"$ADD_REELS\", found 2",
+            adapterClasses(static = true) to "$add(Ljava/util/List;Z)V $shape",
+            adapterClasses(returns = "Z") to "$add(Ljava/util/List;Z)Z $shape",
+            adapterClasses(takes = listOf("Ljava/util/List;")) to "$add(Ljava/util/List;)V $shape",
+            adapterClasses(locals = 1) to "$add has fewer than two locals for the answer",
+            adapterClasses(entered = true) to "a jump or exception handler enters $add at its first instruction",
+            adapterClasses(configs = emptyList()) to "$add reads 0 $VIEWER_CONFIG fields of its adapter, not one",
+            adapterClasses(configs = listOf("config", "config2")) to "$add reads 2 $VIEWER_CONFIG fields of its adapter, not one",
+            adapterClasses(sources = emptyList()) to "$add reads 0 $VIEWER_SOURCE fields of its config, not one",
+            adapterClasses(sources = listOf("source", "source2")) to "$add reads 2 $VIEWER_SOURCE fields of its config, not one",
+            adapterClasses(shimmers = 0) to "expected one method of $adapter handed a position that calls add, found 0",
+            adapterClasses(shimmers = 2) to "expected one method of $adapter handed a position that calls add, found 2",
+            adapterClasses(shimmerLocals = 0) to "$shimmer has no local for the answer",
+            adapterClasses(shimmerEntered = true) to "a jump or exception handler enters $shimmer at its first instruction",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.skipPlaceholders() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+                .filter { method -> method.code().any { it.referenceText() in setOf<String?>(PLACEHOLDER, STOP_CACHED) } }
+            assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
+    /** In each declared build the adapter's add and its placeholder at a position ask first. */
+    @Test
+    fun eachDeclaredBuildAsksFirstForAPlaceholder() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                asksForPlaceholders(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildAsksFirstForAPlaceholderToo() {
+        for (base in Fixtures.otherBuilds()) asksForPlaceholders(base, base.parentFile.name)
+    }
+
+    private fun asksForPlaceholders(bundle: File, label: String) {
+        val loading = FixtureDex.classesLoading(bundle, ADD_REELS)
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading))
+
+        val found = context.findPlaceholders()
+        val add = found.add.implementation!!.instructions.count()
+        val shimmer = found.shimmer.implementation!!.instructions.count()
+        context.skipPlaceholders(found)
+
+        val methods = context.mutableClassDefBy(found.add.definingClass).methods
+        fun patched(method: Method) = methods.single { m ->
+            m.name == method.name && m.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
+        }
+        assertAsksForPlaceholders(label, patched(found.add), patched(found.shimmer), found, add, shimmer)
+        val hooked = loading.map { it.type }.flatMap { type -> context.mutableClassDefBy(type).methods }
+        assertEquals("${label}: adds hooked", 1, hooked.count { method -> method.code().any { it.referenceText() == PLACEHOLDER } })
+        assertEquals("${label}: placeholders hooked", 1, hooked.count { method -> method.code().any { it.referenceText() == STOP_CACHED } })
+    }
+
+    /**
+     * First thing in the add: the adapter's config read, then its source, which the hook is handed
+     * with the flag, and the answer back in the flag. A config that isn't there lands on Instagram's
+     * own first instruction with the flag untouched, as does the answer. First thing in the
+     * placeholder: no position goes to Instagram, else the source is handed to the hook and a yes
+     * returns.
+     */
+    private fun assertAsksForPlaceholders(what: String, add: Method, shimmer: Method, found: Placeholders, addBefore: Int, shimmerBefore: Int) {
+        val code = add.code()
+        val flag = add.implementation!!.registerCount - 1
+        assertEquals("$what: add hooks", 1, code.count { it.referenceText() == PLACEHOLDER })
+        assertEquals("$what: add added", addBefore + 8, code.size)
+        assertEquals("$what: the adapter's copy", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
+        assertEquals("$what: the adapter", flag - 2, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the config", found.config, code[1].referenceText())
+        assertEquals("$what: the config test", Opcode.IF_EQZ, code[2].opcode)
+        val address = IntArray(code.size + 1)
+        code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        assertEquals("$what: no config goes to Instagram", 8, address.indexOf(address[2] + (code[2] as OffsetInstruction).codeOffset))
+        assertEquals("$what: the source", found.source, code[3].referenceText())
+        assertEquals("$what: the flag's copy", Opcode.MOVE_FROM16, code[4].opcode)
+        assertEquals("$what: the flag", flag, (code[4] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the hook", PLACEHOLDER, code[5].referenceText())
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[6].opcode)
+        assertEquals("$what: the answer's copy", Opcode.MOVE_FROM16, code[7].opcode)
+        assertEquals("$what: back in the flag", flag, (code[7] as TwoRegisterInstruction).registerA)
+        assertEquals("$what: from the answer", (code[6] as OneRegisterInstruction).registerA, (code[7] as TwoRegisterInstruction).registerB)
+
+        val asks = shimmer.code()
+        val position = shimmer.implementation!!.registerCount - 1
+        assertEquals("$what: placeholder hooks", 1, asks.count { it.referenceText() == STOP_CACHED })
+        assertEquals("$what: placeholder added", shimmerBefore + 9, asks.size)
+        assertEquals("$what: the position", position, (asks[0] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the placeholder's adapter", position - 1, (asks[1] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the placeholder's config", found.config, asks[2].referenceText())
+        assertEquals("$what: the placeholder's source", found.source, asks[4].referenceText())
+        assertEquals("$what: the placeholder's hook", STOP_CACHED, asks[5].referenceText())
+        assertEquals("$what: the placeholder's answer", Opcode.MOVE_RESULT, asks[6].opcode)
+        assertEquals("$what: the skip", Opcode.RETURN_VOID, asks[8].opcode)
+        val at = IntArray(asks.size + 1)
+        asks.forEachIndexed { index, instruction -> at[index + 1] = at[index] + instruction.codeUnits }
+        for (branch in listOf(0, 3, 7)) {
+            assertEquals("$what: placeholder branch $branch", Opcode.IF_EQZ, asks[branch].opcode)
+            assertEquals("$what: placeholder branch $branch goes to Instagram", 9, at.indexOf(at[branch] + (asks[branch] as OffsetInstruction).codeOffset))
+        }
+    }
+
+    /**
+     * An adapter shaped like Instagram 453's 045b: its add loads [ADD_REELS] and reads the viewer's
+     * [VIEWER_CONFIG] (twice, as 045b does) and the config's [VIEWER_SOURCE], next to another class's
+     * config and source. Its placeholder is handed a position and calls the add, next to an update
+     * that calls it too and a scroll handed a position that doesn't.
+     */
+    private fun adapterClasses(
+        adds: Int = 1,
+        static: Boolean = false,
+        returns: String = "V",
+        takes: List<String> = listOf("Ljava/util/List;", "Z"),
+        locals: Int = 3,
+        entered: Boolean = false,
+        configs: List<String> = listOf("config", "config"),
+        sources: List<String> = listOf("source"),
+        shimmers: Int = 1,
+        shimmerLocals: Int = 1,
+        shimmerEntered: Boolean = false,
+    ): List<ClassDef> {
+        val scratch = "v${locals - 1}"
+        val name = if (adds == 0) "$ADD_REELS:addToDataSource" else ADD_REELS
+        val end = if (returns == "V") "return-void" else "const/4 $scratch, 0x0\nreturn $scratch"
+        val body = """
+            ${if (entered) ":top" else ""}
+            const-string $scratch, "$name"
+            ${configs.joinToString("\n") { "iget-object $scratch, p0, $adapter->$it:$VIEWER_CONFIG" }}
+            ${sources.joinToString("\n") { "iget-object $scratch, $scratch, $VIEWER_CONFIG->$it:$VIEWER_SOURCE" }}
+            iget-object $scratch, p0, Lfixture/Other;->config:$VIEWER_CONFIG
+            iget-object $scratch, $scratch, Lfixture/OtherConfig;->source:$VIEWER_SOURCE
+            ${if (entered) "goto :top" else end}
+        """
+        val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val flags = final or (if (static) AccessFlags.STATIC.value else 0)
+        val addTo = "invoke-virtual {p0, ${takes.joinToString(", ") { "v0" }}}, $adapter->add(${takes.joinToString("")})$returns"
+        val puts = List(maxOf(adds, 1)) { method(adapter, if (it == 0) "add" else "add$it", takes, returns, locals, flags, body) }
+        // With no locals v0 is the adapter itself, which the stand-in's call doesn't mind.
+        val calls = if (shimmers == 0) "" else "const/4 v0, 0x0\n$addTo"
+        val shimmerBody = """
+            ${if (shimmerEntered) ":top" else ""}
+            $calls
+            ${if (shimmerEntered) "goto :top" else "return-void"}
+        """
+        val shows = List(maxOf(shimmers, 1)) {
+            method(adapter, if (it == 0) "shimmer" else "shimmer$it", listOf("Ljava/lang/Integer;"), "V", shimmerLocals, final, shimmerBody)
+        }
+        val update = method(adapter, "update", listOf("Ljava/util/List;", "Z"), "V", 1, final, "const/4 v0, 0x0\n$addTo\nreturn-void")
+        val scroll = method(adapter, "scroll", listOf("Ljava/lang/Integer;"), "V", 1, final, "const/4 v0, 0x0\nreturn-void")
+        return listOf(classDef(adapter, puts + shows + update + scroll))
     }
 
     /** The chat reels test gets its flag answered through the extension, and nothing else changes. */

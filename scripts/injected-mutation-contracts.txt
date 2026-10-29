@@ -596,6 +596,15 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stop()Z in instan
 # chat's reels go on to a suggested reel with the switch on; twice or elsewhere, the Reels tab loses
 # its cached reels.
 start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stopCached(Ljava/lang/Object;)Z in static (LX/*;LX/*;Z)V holding ClipsViewerFlashMediaController.insertItemToAdapter
+# With every way to more reels stopped, nothing replaces the loading placeholder the Reels adapter
+# puts after the reels it adds (045b.A0a on 453's 385914283, #390), so the adapter's add asks
+# placeholder first, the one method holding its trace name, and writes the answer into its flag.
+# Its placeholder at a position (045b.A0X), the one method of that class handed an Integer that
+# calls the add, asks stopCached first. Left out, a chat's reels end on a gray reel that never
+# loads; twice or elsewhere, some other viewer loses its loading placeholder.
+start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->placeholder(Ljava/lang/Object;Z)Z in instance (Ljava/util/List;Z)V holding ClipsViewerAdapter.addClipsItems
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->placeholder(Ljava/lang/Object;Z)Z in instance (Ljava/util/List;Z)V holding ClipsViewerAdapter.addClipsItems
+start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stopCached(Ljava/lang/Object;)Z in instance (Ljava/lang/Integer;)V calling instance LX/*;->*(Ljava/util/List;Z)V class-holding ClipsViewerAdapter.addClipsItems
 # Restore trust on re-signed builds puts its call first in the package signer reader, which its
 # fingerprint picks by the SigningInfo and PackageInfo calls it makes. The reader holds no string,
 # so the rule holds the old signatures array it reads, which 28 methods read on 449. Of
