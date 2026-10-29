@@ -119,6 +119,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting CATEGORY_PAGES =
             new BooleanSetting("hushgram_category_pages", TRUE);
 
+    /**
+     * Each switch's description behind an "i" at the end of its title, for a shorter page (#130).
+     * Off to start. A settings-page choice, read saved even during Pause ({@link DescriptionInfo}).
+     */
+    public static final BooleanSetting DESCRIPTIONS_BEHIND_INFO =
+            new BooleanSetting("hushgram_descriptions_behind_info", FALSE);
+
     /** A settings-page choice, read saved even during Pause. Existing backup names stay the default. */
     public static final BooleanSetting DATE_SETTINGS_EXPORT =
             new BooleanSetting("hushgram_date_settings_export", FALSE);

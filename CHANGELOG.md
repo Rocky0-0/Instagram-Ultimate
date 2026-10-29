@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - HushGram settings:** `Descriptions behind an info button` under Settings entry shows each switch by its name alone, with a small i to tap for what it does. Off to start. A greyed-out row and a screen reader still get the full line. Asked for in #130.
+
 * **Instagram - Download any video:** Copy media link under Details now says the link stops working after a few days, since Instagram's file addresses expire. Asked for in #364.
 
 * **Instagram - Download any video:** `Never save AV1 video` under Downloads is for a phone that plays AV1 badly. A video Instagram has at full size only as AV1 is saved as VP9, or at its largest H.264 size. Starts off. Asked for in #379 and #348.

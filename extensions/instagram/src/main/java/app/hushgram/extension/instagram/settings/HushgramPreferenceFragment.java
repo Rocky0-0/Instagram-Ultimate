@@ -790,6 +790,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return view == null ? null : view.findViewById(android.R.id.list);
     }
 
+    /** Binds the rows on show again, for a choice about how every row looks. */
+    void rebindRows() {
+        ListView list = listView();
+        if (list != null) list.invalidateViews();
+    }
+
     /** Page entry shouldn't focus the search field or move a restored viewport to show it. */
     private void focusPage() {
         View view = getView();
@@ -5366,6 +5372,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             super.onBindView(view);
             showAllText(view);
             ScreenColors.row(view, this);
+            // A greyed-out row's line says why, so it stays in sight.
+            DescriptionInfo.bind(view, isEnabled() ? getSummary() : null);
             view.setAccessibilityDelegate(new RowSemantics(this, Switch.class));
         }
     }
