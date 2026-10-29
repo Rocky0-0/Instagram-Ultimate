@@ -91,11 +91,16 @@ once-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->units(Ljav
 # switch on; twice or elsewhere, it isn't the guard the patch wrote.
 start-call Lapp/hushgram/extension/instagram/direct/Instants;->hide()Z in static (Lcom/instagram/common/session/UserSession;Z)Z holding const:0x8105a0000019ce
 once-call Lapp/hushgram/extension/instagram/direct/Instants;->hide()Z in static (Lcom/instagram/common/session/UserSession;Z)Z holding const:0x8105a0000019ce
-# Tab bar layout (#356) hands each return of Instagram's newer tab bar gate (07xk.A05 and three
-# returns on 452, 00SK.A04 and three on 453), the static (UserSession) method answering a boolean from an override and the navigation
+# Tab bar layout (#356) hands each of the three returns of Instagram's newer tab bar gate (00SL.A04
+# on 453), the static (UserSession) method answering a boolean from an override and the navigation
 # config, to TabBarLayout.newTabBar(int) first. The config's string read has another shape, so the
 # shape and the flag pick the gate alone. Fewer calls leave a return with Instagram's own bar.
-once-call Lapp/hushgram/extension/instagram/reels/TabBarLayout;->newTabBar(I)Z in static (Lcom/instagram/common/session/UserSession;)Z holding const:0x208107fa00102a5c
+once-call Lapp/hushgram/extension/instagram/reels/TabBarLayout;->newTabBar(I)Z in static (Lcom/instagram/common/session/UserSession;)Z sites 3 holding const:0x208107fa00102a5c
+# The same patch hands the classic bar's page count in the long press on Search (#383, 0BG3 case
+# 0x19 on 453) to TabBarLayout.quickSearchPages(int): the coroutine reads the tab host's pager, counts
+# its adapter, and with no pager takes the tab list's size, which no page ever reaches. Left out, the
+# press stops at Explore on the classic bar.
+once-call Lapp/hushgram/extension/instagram/reels/TabBarLayout;->quickSearchPages(I)I in instance (Ljava/lang/Object;)Ljava/lang/Object; holding LX/*;->*:Landroidx/viewpager2/widget/ViewPager2; LX/*;->getItemCount()I
 # Read messages without the seen receipt (#13) hands ThreadSeen.hold(Object, Object) the receipt and
 # the account the handler keeps first in the mutation queue's handler for an ordinary chat's seen
 # receipt (05cs.Gsm on 450), the one method holding both names of the GraphQL mutation that carries
