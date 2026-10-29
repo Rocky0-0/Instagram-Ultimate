@@ -590,6 +590,12 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stop()Z in instan
 # out, a chat's reels go on to suggested reels with the switch on; twice or elsewhere, a viewer
 # opened anywhere else stops asking for more.
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stop()Z in instance (Ljava/util/List;ZZZ)V holding active_section_on_start
+# And stopCached first in the static insert of one of the reels Instagram keeps cached for the
+# Reels tab (04HZ.A0A on 453's 385914283, #390), the one method holding its trace name, handed the
+# viewer's source. Near the last reel the viewer puts one in without asking the server. Left out, a
+# chat's reels go on to a suggested reel with the switch on; twice or elsewhere, the Reels tab loses
+# its cached reels.
+start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stopCached(Ljava/lang/Object;)Z in static (LX/*;LX/*;Z)V holding ClipsViewerFlashMediaController.insertItemToAdapter
 # Restore trust on re-signed builds puts its call first in the package signer reader, which its
 # fingerprint picks by the SigningInfo and PackageInfo calls it makes. The reader holds no string,
 # so the rule holds the old signatures array it reads, which 28 methods read on 449. Of

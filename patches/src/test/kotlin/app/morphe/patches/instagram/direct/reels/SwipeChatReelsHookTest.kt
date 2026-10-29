@@ -45,6 +45,8 @@ class SwipeChatReelsHookTest {
     private val chatSource = "Lfixture/ChatSource;"
     private val fetcher = "Lfixture/Fetcher;"
     private val viewer = "Lfixture/Viewer;"
+    private val controller = "Lfixture/FlashController;"
+    private val item = "Lfixture/Item;"
 
     /** The hooks the patch writes are in the ChatReels the bundle ships, public and static. */
     @Test
@@ -52,7 +54,7 @@ class SwipeChatReelsHookTest {
         val declared = ExtensionDex.classDef(CHAT_REELS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(CHAIN, STOP)) assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        for (hook in listOf(CHAIN, STOP, STOP_CACHED)) assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
     }
 
     /** The dual paging request asks the extension first, for the stock side of a chat's source only (#390). */
@@ -345,6 +347,140 @@ class SwipeChatReelsHookTest {
             ImmutableField(VIEWER_CONFIG, "NONE", DIRECT_DATA, final or AccessFlags.STATIC.value, null, null, null) +
             ImmutableField(VIEWER_CONFIG, "thread", "Ljava/lang/String;", final, null, null, null)
         return listOf(classDef(viewer, asks + open), classDef(VIEWER_CONFIG, emptyList(), fields = fields))
+    }
+
+    /** The insert of a cached reel asks the extension first, handing it the viewer's source (#390). */
+    @Test
+    fun aCachedReelAsksFirst() {
+        val context = PatchContexts.of(cachedClasses())
+        val found = context.findCachedReels()
+        val before = found.insert.implementation!!.instructions.count()
+
+        context.stopCachedReels(found)
+
+        assertEquals(1, found.controller)
+        assertEquals("$controller->source:$VIEWER_SOURCE", found.source)
+        val methods = context.mutableClassDefBy(controller).methods
+        assertAsksForCached("stand-in", methods.single { it.name == "insert" }, found, before)
+        assertTrue("the controller's run was touched", methods.single { it.name == "execute" }.code().none { it.referenceText() == STOP_CACHED })
+    }
+
+    /** A build the cached finder can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun aBuildTheCachedFinderCantReadFailsBeforeAnythingChanges() {
+        val insert = "$controller->insert"
+        val shape = "isn't a static insert handed its controller"
+        val cases = listOf(
+            cachedClasses(inserts = 0) to "expected one method loading \"$CACHED_REEL\", found 0",
+            cachedClasses(inserts = 2) to "expected one method loading \"$CACHED_REEL\", found 2",
+            cachedClasses(static = false) to "$insert(${item}${controller}Z)V $shape",
+            cachedClasses(returns = "Z") to "$insert(${item}${controller}Z)Z $shape",
+            cachedClasses(takes = listOf(item, "Z")) to "$insert(${item}Z)V $shape",
+            cachedClasses(takes = listOf(controller, controller, "Z")) to "$insert($controller${controller}Z)V $shape",
+            cachedClasses(locals = 0) to "$insert has no local for the answer",
+            cachedClasses(entered = true) to "a jump or exception handler enters $insert at its first instruction",
+            cachedClasses(sources = 0) to "$controller holds 0 $VIEWER_SOURCE fields, not one",
+            cachedClasses(sources = 2) to "$controller holds 2 $VIEWER_SOURCE fields, not one",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.stopCachedReels() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+                .filter { method -> method.code().any { it.referenceText() == STOP_CACHED } }
+            assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
+    /** In each declared build the insert of a cached reel asks first. */
+    @Test
+    fun eachDeclaredBuildAsksFirstForACachedReel() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                asksForCached(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildAsksFirstForACachedReelToo() {
+        for (base in Fixtures.otherBuilds()) asksForCached(base, base.parentFile.name)
+    }
+
+    private fun asksForCached(bundle: File, label: String) {
+        val loading = FixtureDex.classesLoading(bundle, CACHED_REEL)
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading))
+
+        val found = context.findCachedReels()
+        val before = found.insert.implementation!!.instructions.count()
+        context.stopCachedReels(found)
+
+        val takes = found.insert.parameterTypes.map(CharSequence::toString)
+        val insert = context.mutableClassDefBy(found.insert.definingClass).methods
+            .single { it.name == found.insert.name && it.parameterTypes.map(CharSequence::toString) == takes }
+        assertAsksForCached(label, insert, found, before)
+        val hooked = loading.map { it.type }.flatMap { type -> context.mutableClassDefBy(type).methods }
+            .count { method -> method.code().any { it.referenceText() == STOP_CACHED } }
+        assertEquals("${label}: methods hooked", 1, hooked)
+    }
+
+    /**
+     * First thing: the controller's viewer source read and handed to the hook, and a yes returning.
+     * A no lands on Instagram's own first instruction.
+     */
+    private fun assertAsksForCached(what: String, method: Method, found: CachedReels, before: Int) {
+        val code = method.code()
+        val words = method.parameterTypes.size + method.parameterTypes.count { it.toString() == "J" || it.toString() == "D" }
+        val first = method.implementation!!.registerCount - words
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == STOP_CACHED })
+        assertEquals("$what: added", before + 6, code.size)
+        assertEquals("$what: the controller's copy", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
+        assertEquals("$what: the controller", first + found.controller, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the source read", Opcode.IGET_OBJECT, code[1].opcode)
+        assertEquals("$what: the source", found.source, code[1].referenceText())
+        assertEquals("$what: the hook", STOP_CACHED, code[2].referenceText())
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[3].opcode)
+        assertEquals("$what: the stop", Opcode.RETURN_VOID, code[5].opcode)
+        val address = IntArray(code.size + 1)
+        code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        assertEquals("$what: the test", Opcode.IF_EQZ, code[4].opcode)
+        assertEquals("$what: a no goes to Instagram", 6, address.indexOf(address[4] + (code[4] as OffsetInstruction).codeOffset))
+    }
+
+    /**
+     * A controller shaped like Instagram 453's 04HZ: its static insert loads [CACHED_REEL] and is
+     * handed a reel, the controller and a flag. The controller holds the viewer's [VIEWER_SOURCE],
+     * next to a static one and a string.
+     */
+    private fun cachedClasses(
+        inserts: Int = 1,
+        static: Boolean = true,
+        returns: String = "V",
+        takes: List<String> = listOf(item, controller, "Z"),
+        locals: Int = 2,
+        entered: Boolean = false,
+        sources: Int = 1,
+    ): List<ClassDef> {
+        val scratch = if (locals == 0) "p0" else "v${locals - 1}"
+        val name = if (inserts == 0) "ClipsViewerFlashMediaController.insertForColdStart" else CACHED_REEL
+        val end = if (returns == "V") "return-void" else "const/4 $scratch, 0x0\nreturn $scratch"
+        val body = """
+            ${if (entered) ":top" else ""}
+            const-string $scratch, "$name"
+            ${if (entered) "goto :top" else end}
+        """
+        val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val flags = final or (if (static) AccessFlags.STATIC.value else 0)
+        val puts = List(maxOf(inserts, 1)) { method(controller, if (it == 0) "insert" else "insert$it", takes, returns, locals, flags, body) }
+        val execute = method(controller, "execute", emptyList(), "V", 1, final, "iget-object v0, p0, $controller->source:$VIEWER_SOURCE\nreturn-void")
+        val fields = List(sources) { ImmutableField(controller, if (it == 0) "source" else "source$it", VIEWER_SOURCE, final, null, null, null) } +
+            ImmutableField(controller, "DEFAULT", VIEWER_SOURCE, final or AccessFlags.STATIC.value, null, null, null) +
+            ImmutableField(controller, "module", "Ljava/lang/String;", final, null, null, null)
+        return listOf(classDef(controller, puts + execute, fields = fields))
     }
 
     /** The chat reels test gets its flag answered through the extension, and nothing else changes. */

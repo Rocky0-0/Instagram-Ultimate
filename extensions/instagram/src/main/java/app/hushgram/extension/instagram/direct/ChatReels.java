@@ -19,11 +19,16 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>The viewer gets a chat's reels one of two ways: handed all of them when it opens, then asking
  * for more past them, which are suggested reels, or paging a source with two sides, the chat's own
- * shared reels and then Instagram's suggested ones. The patch asks {@link #stop()} before a viewer
- * opened from a chat asks for more, and before it asks for that second side, so with the second
+ * shared reels and then Instagram's suggested ones. Near its last reel it also puts in reels
+ * Instagram keeps cached for the Reels tab, without asking the server. The patch asks
+ * {@link #stop()} before a viewer opened from a chat asks for more, and before it asks for that
+ * second side, and {@link #stopCached(Object)} before a cached reel goes in, so with the second
  * switch on it ends after the chat's reels (#390).
  */
 public final class ChatReels {
+    /** The name of Instagram's viewer source for a reel opened from a chat. */
+    private static final String CHAT_SOURCE = "DIRECT";
+
     private ChatReels() {
     }
 
@@ -56,5 +61,14 @@ public final class ChatReels {
             HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels end", failure);
             return false;
         }
+    }
+
+    /**
+     * Whether the viewer skips putting in one of Instagram's cached reels: yes while the switch is on
+     * and [source], the viewer's ClipsViewerSource, is a chat's. No for any other viewer, and while
+     * the switch is off, HushGram is paused or the settings aren't ready. Never throws.
+     */
+    public static boolean stopCached(Object source) {
+        return source instanceof Enum && CHAT_SOURCE.equals(((Enum<?>) source).name()) && stop();
     }
 }

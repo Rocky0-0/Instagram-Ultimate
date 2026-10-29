@@ -79,6 +79,19 @@ internal const val VIEWER_CONFIG = "Lcom/instagram/clips/intf/ClipsViewerConfig;
 /** The chat a reel was opened from, which [VIEWER_CONFIG] holds only then. Redex keeps the name. */
 internal const val DIRECT_DATA = "Lcom/instagram/clips/intf/ClipsViewerDirectData;"
 
+internal const val STOP_CACHED = "$CHAT_REELS->stopCached(Ljava/lang/Object;)Z"
+
+/**
+ * The trace name of the Reels viewer's insert of a reel Instagram keeps cached for the Reels tab
+ * (LX/04HZ;->A0A on 453's 385914283, in ClipsViewerFlashMediaController). As a viewer nears its last
+ * reel the controller puts a cached one after it, without asking the server, which is where the
+ * suggested reels after a chat's own come from. Only that insert loads it.
+ */
+internal const val CACHED_REEL = "ClipsViewerFlashMediaController.insertItemToAdapter"
+
+/** Where a Reels viewer was opened from, DIRECT for a chat. Redex keeps the name. */
+internal const val VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
+
 /**
  * Swiping up on a reel opened from a chat goes through the other reels shared in that chat before
  * any suggested reels (#350), and with the second switch stops after them (#390). In the default
@@ -101,9 +114,11 @@ val swipeChatReelsPatch = bytecodePatch(
         val read = findChatReels()
         val end = findChatReelsEnd()
         val more = findMoreReels()
+        val cached = findCachedReels()
         chainChatReels(read)
         stopAfterChatReels(end)
         stopMoreReels(more)
+        stopCachedReels(cached)
         enableStatus("chatReels")
     }
 }
@@ -280,5 +295,60 @@ internal fun BytecodePatchContext.stopMoreReels(found: MoreReels = findMoreReels
             return-void
         """,
         ExternalLabel("instagram", request.getInstruction(0)),
+    )
+}
+
+/**
+ * The insert of a cached reel, the word its controller is handed in, and the controller's
+ * [VIEWER_SOURCE] field.
+ */
+internal class CachedReels(val insert: MutableMethod, val controller: Int, val source: String)
+
+/**
+ * Finds the insert of a cached reel before anything changes: the one method loading [CACHED_REEL],
+ * a static method returning nothing handed one controller of its own class, with a local for the
+ * hook's answer and nothing jumping to its first instruction. The controller holds one
+ * [VIEWER_SOURCE] field. Fails when any of it isn't so.
+ */
+internal fun BytecodePatchContext.findCachedReels(): CachedReels {
+    val inserts = classesLoadingString(CACHED_REEL).flatMap { holder -> holder.methods.filter { loadsString(it, CACHED_REEL) } }
+    val insert = inserts.singleOrNull() ?: refuse("expected one method loading \"$CACHED_REEL\", found ${inserts.size}")
+    val takes = insert.parameterTypes.map(CharSequence::toString)
+    val where = "${insert.definingClass}->${insert.name}"
+    if (!AccessFlags.STATIC.isSet(insert.accessFlags) || insert.returnType != "V" || takes.count { it == insert.definingClass } != 1) {
+        refuse("$where(${takes.joinToString("")})${insert.returnType} isn't a static insert handed its controller")
+    }
+    if (insert.localRegisterCount() < 1) refuse("$where has no local for the answer")
+    if (0 in insert.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
+
+    val sources = classDefBy(insert.definingClass).fields.filter { it.type == VIEWER_SOURCE && !AccessFlags.STATIC.isSet(it.accessFlags) }
+    val source = sources.singleOrNull() ?: refuse("${insert.definingClass} holds ${sources.size} $VIEWER_SOURCE fields, not one")
+    val controller = takes.take(takes.indexOf(insert.definingClass)).sumOf { if (it == "J" || it == "D") 2 else 1 }
+
+    val mutable = mutableClassDefBy(insert.definingClass).methods.single { method ->
+        method.name == insert.name && method.parameterTypes.map(CharSequence::toString) == takes
+    }
+    return CachedReels(mutable, controller, "${insert.definingClass}->${source.name}:$VIEWER_SOURCE")
+}
+
+/**
+ * Asks the extension through [STOP_CACHED] first in the insert of a cached reel, handing it the
+ * controller's viewer source. A yes (a viewer opened from a chat, with the switch on) returns before
+ * the reel goes in, so the viewer ends after the chat's own reels. Everything else goes on to
+ * Instagram.
+ */
+internal fun BytecodePatchContext.stopCachedReels(found: CachedReels = findCachedReels()) {
+    val insert = found.insert
+    insert.addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v0, p${found.controller}
+            iget-object v0, v0, ${found.source}
+            invoke-static { v0 }, $STOP_CACHED
+            move-result v0
+            if-eqz v0, :instagram
+            return-void
+        """,
+        ExternalLabel("instagram", insert.getInstruction(0)),
     )
 }

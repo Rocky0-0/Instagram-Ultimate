@@ -124,4 +124,27 @@ public class ChatReelsTest {
         Settings.STOP_AFTER_CHAT_REELS.save(false);
         assertFalse("off", ChatReels.stop());
     }
+
+    /** Stand-ins for Instagram's viewer sources, named as its enum names them. */
+    private enum Source { DIRECT, DIRECT_SEARCH, CLIPS_TAB }
+
+    /** A cached reel is skipped only in a viewer opened from a chat, and only with the stop on (#390). */
+    @Test
+    public void aCachedReelIsSkippedOnlyAfterAChatsReels() {
+        assertFalse("off to start, the cached reel goes in", ChatReels.stopCached(Source.DIRECT));
+        Settings.STOP_AFTER_CHAT_REELS.save(true);
+        assertTrue("a chat's viewer", ChatReels.stopCached(Source.DIRECT));
+        assertFalse("the Reels tab", ChatReels.stopCached(Source.CLIPS_TAB));
+        assertFalse("search in chats", ChatReels.stopCached(Source.DIRECT_SEARCH));
+        assertFalse("no source", ChatReels.stopCached(null));
+        assertFalse("not a source", ChatReels.stopCached("DIRECT"));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", ChatReels.stopCached(Source.DIRECT));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue("back on", ChatReels.stopCached(Source.DIRECT));
+        assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
+    }
 }
