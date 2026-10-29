@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Download any video:** Copy media link under Details now says the link stops working after a few days, since Instagram's file addresses expire. Asked for in #364.
+
 * **Instagram - Download any video:** `Never save AV1 video` under Downloads is for a phone that plays AV1 badly. A video Instagram has at full size only as AV1 is saved as VP9, or at its largest H.264 size. Starts off. Asked for in #379 and #348.
 
 ### Bug Fixes
