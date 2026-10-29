@@ -14,8 +14,8 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * **Instagram - Tab bar layout:** Picking Classic or Swipe under Tab bar works on Instagram 453 again. On 0.0.17 it changed nothing, since the patch was answering an Instagram setting the tab bar never reads. Reported in #356.
-* **Instagram - Tab bar layout:** A long press on the Search tab opens search with the keyboard up again on the classic bar, whether Instagram gave you that bar or you picked it. Instagram 453 waits for the swipe bar's pages first, and the classic bar never has any, so the press only switched to Explore. Reported in #383.
-* **Instagram - Full screen Reels and Home:** With `Full screen Reels` on, going back from a reel you'd opened on someone's profile left the top of that profile under the status bar, with their name behind the clock. The profile makes room for the bar again when you go back. Reported in #385.
+* **Instagram - Tab bar layout:** A long press on the Search tab opens search with the keyboard up again on the classic bar. Instagram 453 waited for pages only the swipe bar has, so the press just switched to Explore. Reported in #383.
+* **Instagram - Full screen Reels and Home:** With `Full screen Reels` on, going back from a reel you'd opened on someone's profile left their name behind the clock in the status bar. The profile makes room for the bar again now. Reported in #385.
 * **Instagram - HushGram settings:** Typing fast in the settings search keeps every letter. The list used to take the focus from the field while it filtered, so a letter could go missing or come out twice.
 * **Instagram - View stories anonymously:** A story you've just watched with `Gray out stories you've watched` on stays where it was in the tray until you pull down to refresh. It used to jump to the right the moment you closed it. Reported in #377.
 * **Tooling:** When patching for a phone stops on an Instagram build with no reviewed coverage, the message now names the builds that have it, so you know which one to patch.
