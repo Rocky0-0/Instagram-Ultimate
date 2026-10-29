@@ -6,7 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
-* **Instagram - HushGram settings:** `Descriptions behind an info button` under Settings entry shows each switch by its name alone, with a small i to tap for what it does. Off to start. A greyed-out row and a screen reader still get the full line. The i grows with a larger font size and sits on the left in right-to-left languages. Asked for in #130.
+* **Instagram - HushGram settings:** `Descriptions behind an info button` under Settings entry shows each switch by name alone, with a small i to tap for what it does. Off to start. Asked for in #130.
 
 * **Instagram - Download any video:** Copy media link under Details now says the link stops working after a few days, since Instagram's file addresses expire. Asked for in #364.
 
