@@ -40,6 +40,7 @@ public class ChatReelsTest {
     @After
     public void restore() {
         Settings.SWIPE_CHAT_REELS.resetToDefault();
+        Settings.STOP_AFTER_CHAT_REELS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -86,5 +87,41 @@ public class ChatReelsTest {
         });
 
         assertTrue("back on", ChatReels.chain(0));
+    }
+
+    /** The stop starts off, so the viewer goes on to Instagram's suggested reels (#390). */
+    @Test
+    public void theStopStartsOff() {
+        assertFalse(Settings.STOP_AFTER_CHAT_REELS.get());
+        assertFalse("off to start, the suggestions come", ChatReels.stop());
+    }
+
+    /** On, the viewer stops after the chat's reels, whether or not the swipe switch is on. */
+    @Test
+    public void onTheViewerStopsAfterTheChatsReels() {
+        Settings.STOP_AFTER_CHAT_REELS.save(true);
+        assertTrue(ChatReels.stop());
+        Settings.SWIPE_CHAT_REELS.save(false);
+        assertTrue("Instagram's own chain stops too", ChatReels.stop());
+        assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
+    }
+
+    /** Off, paused or before the settings are read, the viewer goes on to the suggestions. */
+    @Test
+    public void offPausedAndUnreadyGoOnToTheSuggestions() {
+        Settings.STOP_AFTER_CHAT_REELS.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", ChatReels.stop());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertFalse("no context", ChatReels.stop()));
+        SettingsContextRule.beforeThePauseIsDecided(() -> assertFalse("pause undecided", ChatReels.stop()));
+
+        assertTrue("back on", ChatReels.stop());
+        Settings.STOP_AFTER_CHAT_REELS.save(false);
+        assertFalse("off", ChatReels.stop());
     }
 }

@@ -579,6 +579,11 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryLoop;->loop(I)Z in inst
 # so the rule names the flag. Left out, a reel opened from a chat swipes on to suggested reels;
 # twice or elsewhere, it isn't the answer the patch wrote.
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->chain(I)Z in instance (Lcom/instagram/common/session/UserSession;)Z holding const:0x81153c00006fb6
+# Stop after the chat's reels asks ChatReels.stop at the start of the Reels viewer's dual paging
+# request (0Dyx.A03 on 453's 385914285, 0Fit.A03 on 385914282, #390), the one method holding its
+# trace name, for the stock side of a chat's source. Left out, a chat's reels go on to suggested
+# reels with the switch on; twice or elsewhere, some other paging ends early.
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stop()Z in instance (L*;ZZZ)V holding AbstractPaginatingClipsItemsFetcher.makeDualPaginationRequest
 # Restore trust on re-signed builds puts its call first in the package signer reader, which its
 # fingerprint picks by the SigningInfo and PackageInfo calls it makes. The reader holds no string,
 # so the rule holds the old signatures array it reads, which 28 methods read on 449. Of

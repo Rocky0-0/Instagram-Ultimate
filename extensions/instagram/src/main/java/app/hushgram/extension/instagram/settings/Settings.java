@@ -550,6 +550,12 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SWIPE_CHAT_REELS = new BooleanSetting("hushgram_swipe_chat_reels", FALSE);
 
     /**
+     * Reels opened from a chat end after the chat's own shared reels, with no suggested reels after
+     * them ({@link app.hushgram.extension.instagram.direct.ChatReels#stop()}, #390). Off to start.
+     */
+    public static final BooleanSetting STOP_AFTER_CHAT_REELS = new BooleanSetting("hushgram_stop_after_chat_reels", FALSE);
+
+    /**
      * A call started from a chat waits for a question first
      * ({@link app.hushgram.extension.instagram.direct.CallConfirm}). Off to start.
      */
