@@ -27,6 +27,7 @@ function Reset-Producer {
     $script:state.settingsMode='none'
     $script:state.expanded=$false; $script:state.expandBroken=$false; $script:state.foldBroken=$false; $script:state.headingTaps=0
     $script:state.headingTop=300; $script:state.footStuck=$false; $script:state.headingTapYs=[Collections.Generic.List[int]]::new()
+    $script:state.animateFor=0; $script:state.animating=0; $script:state.tapCaptures=0
 }
 # Strict APK/report/PNG validation has its own real-byte fixtures. These tests cover the
 # producer's choice of operations and its propagation of each reader's refusal.
@@ -80,7 +81,9 @@ function Invoke-HushgramAdbCommand {
         if ($state.current -ceq 'settings-root') {
             $state.headingTaps++
             $state.headingTapYs.Add([int]$Arguments[6])
-            if (-not $state.expandBroken -and -not ($state.foldBroken -and $state.expanded)) { $state.expanded=-not $state.expanded }
+            if (-not $state.expandBroken -and -not ($state.foldBroken -and $state.expanded)) {
+                $state.expanded=-not $state.expanded; $state.animating=$state.animateFor
+            }
         }
         else {
             $index=[int]([int]$Arguments[5]/100)
@@ -93,15 +96,18 @@ function Invoke-HushgramAdbCommand {
     }
     [pscustomobject]@{ ExitCode=0; Stdout=$output; Output=$output }
 }
-function New-ProducerUi {
+function New-ProducerUi([switch]$Animating) {
     $children=''
     if ($state.current -like 'settings-*') {
         $modeLabel=if($state.settingsMode -ceq 'flat') { 'Show settings by category' } else { 'Show all settings as a list' }
+        # A section sliding open or shut reports its heading and rows at zero bounds until the animation lands.
+        $headingBounds=if($Animating) { '[0,0][0,0]' } else { "[0,$($state.headingTop)][700,$($state.headingTop+100)]" }
+        $rowBounds=if($Animating) { '[0,0][0,0]' } else { "[0,$($state.headingTop+100)][700,$($state.headingTop+200)]" }
         $children="<node package='com.instagram.android' class='android.widget.EditText' hint='Search settings' enabled='true' visible-to-user='true' bounds='[0,100][700,150]' />"+
             "<node package='com.instagram.android' class='android.widget.TextView' text='$modeLabel' enabled='true' visible-to-user='true' bounds='[0,160][700,200]' />"+
             "<node package='com.instagram.android' class='android.widget.ListView' resource-id='android:id/list' scrollable='true' enabled='true' visible-to-user='true' bounds='[0,200][700,950]'>"+
-            "<node package='com.instagram.android' class='android.widget.TextView' text='Fixture category' clickable='true' enabled='true' visible-to-user='true' bounds='[0,$($state.headingTop)][700,$($state.headingTop+100)]' />"+
-            $(if ($state.expanded) { "<node package='com.instagram.android' class='android.widget.TextView' text='Known row' enabled='true' visible-to-user='true' bounds='[0,$($state.headingTop+100)][700,$($state.headingTop+200)]' />" })+
+            "<node package='com.instagram.android' class='android.widget.TextView' text='Fixture category' clickable='true' enabled='true' visible-to-user='true' bounds='$headingBounds' />"+
+            $(if ($state.expanded) { "<node package='com.instagram.android' class='android.widget.TextView' text='Known row' enabled='true' visible-to-user='true' bounds='$rowBounds' />" })+
             '</node>'
         return [xml]"<hierarchy><node package='com.instagram.android' enabled='true' visible-to-user='true' bounds='[0,0][720,1000]'>$children</node></hierarchy>"
     }
@@ -116,7 +122,10 @@ function Invoke-WalkCapture {
     param($CaptureId,$RunId)
     $state.captures++
     if ($state.refuseAt -eq $state.captures) { throw 'The active window is a system ANR dialog.' }
-    $ui=New-ProducerUi
+    if ($state.headingTaps -gt 0) { $state.tapCaptures++ }
+    $animating=$state.current -ceq 'settings-root' -and $state.animating -gt 0
+    if ($animating) { $state.animating-- }
+    $ui=New-ProducerUi -Animating:$animating
     [pscustomobject]@{ CaptureId=$CaptureId; RunId=$RunId; ParsedXml=$ui; AfterParsedXml=$ui; UptimeMs=$state.captures
         StartedUtc=[DateTime]::UtcNow.ToString('o'); FinishedUtc=[DateTime]::UtcNow.ToString('o')
         UiPath='fixture.xml'; AfterUiPath='fixture-after.xml'; ImagePath='fixture.png'
@@ -219,6 +228,16 @@ try {
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
     Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 0 -and
         @($receipt.problems | Where-Object { $_ -like '*stayed at the foot of the list*' }).Count -eq 1) 'A heading that would not lift out of the gesture area was tapped or earned PASS.'
+    # A heading caught mid-animation at zero bounds is looked at once more after a settle, not counted as missing.
+    Reset-Producer; $state.settingsMode='pages'; $state.animateFor=1
+    $path=Invoke-WalkApp @arguments
+    $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    Assert-Producer ($receipt.result -ceq 'PASS' -and $state.headingTaps -eq 2 -and -not $state.expanded) "A heading read at zero bounds while its section animated was counted as missing: $($receipt.problems -join '; ')"
+    Reset-Producer; $state.settingsMode='pages'; $state.animateFor=99
+    $path=Invoke-WalkApp @arguments
+    $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 1 -and $state.tapCaptures -eq 2 -and
+        @($receipt.problems | Where-Object { $_ -like '*could not be folded*' }).Count -eq 1) 'A heading stuck at zero bounds was re-read more than once, tapped or earned PASS.'
 
     # Coordinates come from one visible, enabled native target and all ancestor clipping.
     Reset-Producer
