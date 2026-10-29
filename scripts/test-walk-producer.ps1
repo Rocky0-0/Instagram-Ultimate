@@ -28,6 +28,7 @@ function Reset-Producer {
     $script:state.expanded=$false; $script:state.expandBroken=$false; $script:state.foldBroken=$false; $script:state.headingTaps=0
     $script:state.headingTop=300; $script:state.footStuck=$false; $script:state.headingTapYs=[Collections.Generic.List[int]]::new()
     $script:state.animateFor=0; $script:state.animating=0; $script:state.tapCaptures=0
+    $script:state.headingAbsent=$false; $script:state.searchScrolledAway=$false
 }
 # Strict APK/report/PNG validation has its own real-byte fixtures. These tests cover the
 # producer's choice of operations and its propagation of each reader's refusal.
@@ -103,10 +104,12 @@ function New-ProducerUi([switch]$Animating) {
         # A section sliding open or shut reports its heading and rows at zero bounds until the animation lands.
         $headingBounds=if($Animating) { '[0,0][0,0]' } else { "[0,$($state.headingTop)][700,$($state.headingTop+100)]" }
         $rowBounds=if($Animating) { '[0,0][0,0]' } else { "[0,$($state.headingTop+100)][700,$($state.headingTop+200)]" }
-        $children="<node package='com.instagram.android' class='android.widget.EditText' hint='Search settings' enabled='true' visible-to-user='true' bounds='[0,100][700,150]' />"+
+        # With the search row scrolled away, settings are known by the fixed root bar's title instead.
+        $children=$(if ($state.searchScrolledAway) { "<node package='com.instagram.android' class='android.widget.TextView' text='HushGram' enabled='true' visible-to-user='true' bounds='[0,100][700,150]' />" }
+            else { "<node package='com.instagram.android' class='android.widget.EditText' hint='Search settings' enabled='true' visible-to-user='true' bounds='[0,100][700,150]' />" })+
             "<node package='com.instagram.android' class='android.widget.TextView' text='$modeLabel' enabled='true' visible-to-user='true' bounds='[0,160][700,200]' />"+
             "<node package='com.instagram.android' class='android.widget.ListView' resource-id='android:id/list' scrollable='true' enabled='true' visible-to-user='true' bounds='[0,200][700,950]'>"+
-            "<node package='com.instagram.android' class='android.widget.TextView' text='Fixture category' clickable='true' enabled='true' visible-to-user='true' bounds='$headingBounds' />"+
+            $(if (-not $state.headingAbsent) { "<node package='com.instagram.android' class='android.widget.TextView' text='Fixture category' clickable='true' enabled='true' visible-to-user='true' bounds='$headingBounds' />" })+
             $(if ($state.expanded) { "<node package='com.instagram.android' class='android.widget.TextView' text='Known row' enabled='true' visible-to-user='true' bounds='$rowBounds' />" })+
             '</node>'
         return [xml]"<hierarchy><node package='com.instagram.android' enabled='true' visible-to-user='true' bounds='[0,0][720,1000]'>$children</node></hierarchy>"
@@ -238,6 +241,17 @@ try {
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
     Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 1 -and $state.tapCaptures -eq 2 -and
         @($receipt.problems | Where-Object { $_ -like '*could not be folded*' }).Count -eq 1) 'A heading stuck at zero bounds was re-read more than once, tapped or earned PASS.'
+    # A missing heading is reported once the list stops moving, not after 24 swipes each way.
+    foreach ($scrolledAway in @($false,$true)) {
+        Reset-Producer; $state.settingsMode='pages'; $state.headingAbsent=$true; $state.searchScrolledAway=$scrolledAway
+        $path=Invoke-WalkApp @arguments
+        $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+        # With the search row in view the upward search stops before swiping; without it, after one swipe that moved nothing.
+        $expectedSwipes=if($scrolledAway) { 2 } else { 1 }
+        Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 0 -and
+            @($state.calls | Where-Object { $_ -like 'shell input swipe *' }).Count -eq $expectedSwipes -and
+            @($receipt.problems | Where-Object { $_ -like '*was unavailable*' }).Count -eq 1) "An absent heading kept the search swiping (search scrolled away: $scrolledAway)."
+    }
 
     # Coordinates come from one visible, enabled native target and all ancestor clipping.
     Reset-Producer

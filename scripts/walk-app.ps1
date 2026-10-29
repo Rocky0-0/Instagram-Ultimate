@@ -148,11 +148,23 @@ function Get-WalkActionArea {
         Top=$topEdge; Bottom=$bottomEdge; Left=$leftEdge; Right=$rightEdge }
 }
 
+function Test-WalkSearchFieldVisible {
+    param([xml]$Document)
+    @(Get-WalkVisibleNodes -Document $Document | Where-Object { $_.GetAttribute('class') -match 'EditText$' -and
+        @($_.GetAttribute('text'),$_.GetAttribute('content-desc'),$_.GetAttribute('hint')) -icontains 'Search settings' }).Count -gt 0
+}
+
+function Get-WalkScreenSignature {
+    param([xml]$Document)
+    # What a person could see: a swipe that leaves all of it in place moved nothing.
+    @(Get-WalkVisibleNodes -Document $Document | ForEach-Object {
+        '{0}|{1}|{2}' -f $_.GetAttribute('text'),$_.GetAttribute('content-desc'),$_.GetAttribute('bounds') }) -join "`n"
+}
+
 function Test-WalkSettingsVisible {
     param([xml]$Document)
+    if (Test-WalkSearchFieldVisible $Document) { return $true }
     $nodes = @(Get-WalkVisibleNodes -Document $Document)
-    if (@($nodes | Where-Object { $_.GetAttribute('class') -match 'EditText$' -and
-        @($_.GetAttribute('text'),$_.GetAttribute('content-desc'),$_.GetAttribute('hint')) -icontains 'Search settings' }).Count) { return $true }
     # SettingsDialog's fixed root bar stays visible when its search preference scrolls away.
     @($nodes | Where-Object { $_.GetAttribute('text') -ceq 'HushGram' }).Count -eq 1 -and
         @($nodes | Where-Object { $_.GetAttribute('resource-id') -ceq 'android:id/list' -and
@@ -278,6 +290,7 @@ function Invoke-WalkApp {
             # A category heading expands its rows in place under it, so it is tapped once, never Back
             # (Back closes settings), and the rows are then looked for further down.
             foreach ($direction in @('up','down')) {
+                $signature = $null
                 for ($scrollIndex=0; $scrollIndex -lt 24; $scrollIndex++) {
                     $current = Read-WalkSettingsCapture
                     $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
@@ -326,6 +339,12 @@ function Invoke-WalkApp {
                         }
                         throw "The settings section '$($Destination.title)' expanded without a verified row within a screen of its heading. It was tapped once."
                     }
+                    # At the list's top or foot the last swipe changed nothing, so another one won't either.
+                    $seen = Get-WalkScreenSignature $current.ParsedXml
+                    if ($seen -ceq $signature) { break }
+                    $signature = $seen
+                    # No category sits above the search row, so with it in view an upward swipe can't reveal one.
+                    if ($direction -ceq 'up' -and (Test-WalkSearchFieldVisible $current.ParsedXml)) { break }
                     if (-not (Send-WalkSettingsSwipe $current $direction)) { break }
                 }
             }
