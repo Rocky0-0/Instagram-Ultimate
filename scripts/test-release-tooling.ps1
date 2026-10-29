@@ -3306,16 +3306,16 @@ try {
     $slash = [string][char]92
     foreach ($loose in @('{"success":false,"success":true}', '{"a":[{"b":1},{"b":1,"b":2}]}', '{"Name":1,"name":2}',
         ('{"a":1,"' + $slash + 'u0061":2}'), '[{"a":1}]', '{"a":1} {"a":2}', ('{"a":1 // note' + "`n" + '}'), '{"a":/* note */1}',
-        "{'a':1}", '{a:1}', '{"a":1,}', '{"a":tru}', '')) {
+        "{'a':1}", '{a:1}', '{"a":1,}', '{"a":tru}', '', '{"a":[1,]}', '{"a":[,1]}', '{"a":[1,,2]}', '{"a":,"b":1}', '{"a":}')) {
         $refused = $null
         try { [void](ConvertFrom-PatchJson $loose) } catch { $refused = $_.Exception.Message }
         Assert-True ($refused -like 'The JSON *') "Loose or ambiguous JSON was read, or refused by another parser: $loose ($refused)"
     }
     $strict = ConvertFrom-PatchJson ('{"success":true,"stepResults":[{"step":"PATCHING","success":true},{"step":"WRITING","success":false}],' +
-        '"name":"' + $slash + 'u00e9 ' + $slash + '"q' + $slash + '"","empty":{},"list":[],"size":-1.5e2,"none":null}')
+        '"name":"' + $slash + 'u00e9 ' + $slash + '"q' + $slash + '"","empty":{},"list":[],"nest":[[],[{}],[1,[2]]],"size":-1.5e2,"none":null}')
     Assert-True ($strict.success -eq $true -and $strict.stepResults.Count -eq 2 -and $strict.stepResults[1].step -ceq 'WRITING' -and
         $strict.stepResults[1].success -eq $false -and $strict.name -ceq ([string][char]0xe9 + ' "q"') -and $strict.size -eq -150 -and
-        $null -eq $strict.none) 'A strict document did not read unchanged.'
+        $null -eq $strict.none -and $strict.nest.Count -eq 3 -and $strict.nest[2][1][0] -eq 2) 'A strict document did not read unchanged.'
     # And another build of the declared version, as APKMirror lists several arm64 builds of one
     # Instagram release: the declared name at a code the catalog doesn't pin. Only its base
     # manifest, since the builder has to refuse it before anything is merged or patched.

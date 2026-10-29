@@ -51,6 +51,11 @@ function ConvertFrom-PatchJson {
             continue
         }
         $expectName = $false
+        # pwsh's parser reads [1,], [,1], [1,,2] and {"a":,"b":1} without complaint.
+        if (($previous -ceq ',' -or $previous -ceq ':' -or $previous -ceq '[') -and
+            ($token -ceq ',' -or $token -ceq '}' -or ($token -ceq ']' -and $previous -cne '['))) {
+            throw 'The JSON document is missing a value.'
+        }
         if ($token -ceq '{') { $open.Add([Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)); $expectName = $true }
         elseif ($token -ceq '[') { $open.Add($null) }
         elseif ($token -ceq '}' -or $token -ceq ']') {
