@@ -17,9 +17,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * viewer, so swiping up goes through the ones shared there before Instagram's suggested reels, and
  * Back still lands in the chat. The patch answers the test's one read through {@link #chain(int)}.
  *
- * <p>The viewer pages a chat's reels in two sides, the chat's own shared reels and then Instagram's
- * suggested ones. The patch asks {@link #stop()} before the viewer asks for that second side, so
- * with the second switch on it ends after the chat's reels (#390).
+ * <p>The viewer gets a chat's reels one of two ways: handed all of them when it opens, then asking
+ * for more past them, which are suggested reels, or paging a source with two sides, the chat's own
+ * shared reels and then Instagram's suggested ones. The patch asks {@link #stop()} before a viewer
+ * opened from a chat asks for more, and before it asks for that second side, so with the second
+ * switch on it ends after the chat's reels (#390).
  */
 public final class ChatReels {
     private ChatReels() {

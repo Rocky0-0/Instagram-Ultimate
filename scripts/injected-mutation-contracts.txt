@@ -584,6 +584,12 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->chain(I)Z in inst
 # trace name, for the stock side of a chat's source. Left out, a chat's reels go on to suggested
 # reels with the switch on; twice or elsewhere, some other paging ends early.
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stop()Z in instance (L*;ZZZ)V holding AbstractPaginatingClipsItemsFetcher.makeDualPaginationRequest
+# It asks again first in the Reels viewer's request for more reels past the ones it was handed
+# (02HP.A1R on 453's 385914285, #390), the one method loading active_section_on_start, for a viewer
+# opened from a chat, which goes to Instagram's prefetched suggestions without paging at all. Left
+# out, a chat's reels go on to suggested reels with the switch on; twice or elsewhere, a viewer
+# opened anywhere else stops asking for more.
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stop()Z in instance (Ljava/util/List;ZZZ)V holding active_section_on_start
 # Restore trust on re-signed builds puts its call first in the package signer reader, which its
 # fingerprint picks by the SigningInfo and PackageInfo calls it makes. The reader holds no string,
 # so the rule holds the old signatures array it reads, which 28 methods read on 449. Of

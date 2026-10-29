@@ -15,6 +15,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Field
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
@@ -24,6 +25,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
@@ -42,6 +44,7 @@ class SwipeChatReelsHookTest {
     private val source = "Lfixture/Source;"
     private val chatSource = "Lfixture/ChatSource;"
     private val fetcher = "Lfixture/Fetcher;"
+    private val viewer = "Lfixture/Viewer;"
 
     /** The hooks the patch writes are in the ChatReels the bundle ships, public and static. */
     @Test
@@ -201,6 +204,149 @@ class SwipeChatReelsHookTest {
         return listOf(classDef(fetcher, requests), classDef(chatSource, asks, chatIs))
     }
 
+    /** A viewer opened from a chat asks the extension first when it asks for more reels (#390). */
+    @Test
+    fun aViewerFromAChatAsksFirstForMore() {
+        val context = PatchContexts.of(viewerClasses())
+        val found = context.findMoreReels()
+        val before = found.request.implementation!!.instructions.count()
+
+        context.stopMoreReels(found)
+
+        assertEquals("$viewer->config:$VIEWER_CONFIG", found.config)
+        assertEquals("$VIEWER_CONFIG->chat:$DIRECT_DATA", found.direct)
+        val methods = context.mutableClassDefBy(viewer).methods
+        assertAsksForMore("stand-in", methods.single { it.name == "more" }, found, before)
+        assertTrue("the viewer's opening was touched", methods.single { it.name == "open" }.code().none { it.referenceText() == STOP })
+    }
+
+    /** A build the more finder can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun aBuildTheMoreFinderCantReadFailsBeforeAnythingChanges() {
+        val more = "$viewer->more"
+        val shape = "isn't an instance request returning nothing"
+        val cases = listOf(
+            viewerClasses(requests = 0) to "expected one method loading \"$MORE_REELS\", found 0",
+            viewerClasses(requests = 2) to "expected one method loading \"$MORE_REELS\", found 2",
+            viewerClasses(static = true) to "$more(Ljava/util/List;ZZZ)V $shape",
+            viewerClasses(returns = "Z") to "$more(Ljava/util/List;ZZZ)Z $shape",
+            viewerClasses(locals = 0) to "$more has no local for the answer",
+            viewerClasses(entered = true) to "a jump or exception handler enters $more at its first instruction",
+            viewerClasses(reads = emptyList()) to "$more reads 0 $VIEWER_CONFIG fields of its viewer, not one",
+            viewerClasses(reads = listOf("config", "config2")) to "$more reads 2 $VIEWER_CONFIG fields of its viewer, not one",
+            viewerClasses(chats = 0) to "$VIEWER_CONFIG holds 0 $DIRECT_DATA fields, not one",
+            viewerClasses(chats = 2) to "$VIEWER_CONFIG holds 2 $DIRECT_DATA fields, not one",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.stopMoreReels() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+                .filter { method -> method.code().any { it.referenceText() == STOP } }
+            assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
+    /** In each declared build the viewer's request for more reels asks first when it was opened from a chat. */
+    @Test
+    fun eachDeclaredBuildAsksFirstForMore() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                asksForMore(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildAsksFirstForMoreToo() {
+        for (base in Fixtures.otherBuilds()) asksForMore(base, base.parentFile.name)
+    }
+
+    private fun asksForMore(bundle: File, label: String) {
+        val loading = FixtureDex.classesLoading(bundle, MORE_REELS)
+        val config = FixtureDex.classes(bundle, setOf(VIEWER_CONFIG)).values
+        val context = PatchContexts.of((FixtureDex.withStringPools(bundle, loading) + config).distinctBy { it.type })
+
+        val found = context.findMoreReels()
+        val before = found.request.implementation!!.instructions.count()
+        context.stopMoreReels(found)
+
+        val takes = found.request.parameterTypes.map(CharSequence::toString)
+        val request = context.mutableClassDefBy(found.request.definingClass).methods
+            .single { it.name == found.request.name && it.parameterTypes.map(CharSequence::toString) == takes }
+        assertAsksForMore(label, request, found, before)
+        val hooked = loading.map { it.type }.flatMap { type -> context.mutableClassDefBy(type).methods }
+            .count { method -> method.code().any { it.referenceText() == STOP } }
+        assertEquals("${label}: methods hooked", 1, hooked)
+    }
+
+    /**
+     * First thing: the viewer's config read, then the chat it holds, the hook asked, and a yes
+     * returning. A config or chat that isn't there, or a no, lands on Instagram's own first instruction.
+     */
+    private fun assertAsksForMore(what: String, method: Method, found: MoreReels, before: Int) {
+        val code = method.code()
+        val words = method.parameterTypes.size + method.parameterTypes.count { it.toString() == "J" || it.toString() == "D" }
+        val self = method.implementation!!.registerCount - words - 1
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == STOP })
+        assertEquals("$what: added", before + 9, code.size)
+        assertEquals("$what: the viewer's copy", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
+        assertEquals("$what: the viewer", self, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the config read", Opcode.IGET_OBJECT, code[1].opcode)
+        assertEquals("$what: the config", found.config, code[1].referenceText())
+        assertEquals("$what: the chat read", Opcode.IGET_OBJECT, code[3].opcode)
+        assertEquals("$what: the chat", found.direct, code[3].referenceText())
+        assertEquals("$what: the hook", STOP, code[5].referenceText())
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[6].opcode)
+        assertEquals("$what: the stop", Opcode.RETURN_VOID, code[8].opcode)
+        val address = IntArray(code.size + 1)
+        code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        for (at in listOf(2, 4, 7)) {
+            assertEquals("$what: branch $at", Opcode.IF_EQZ, code[at].opcode)
+            val target = address.indexOf(address[at] + (code[at] as OffsetInstruction).codeOffset)
+            assertEquals("$what: branch $at goes to Instagram", 9, target)
+        }
+    }
+
+    /**
+     * A viewer shaped like Instagram 453's 02HP: its request for more reels loads [MORE_REELS] and
+     * reads the [VIEWER_CONFIG] it was opened with (twice, as 02HP does), next to a list of its own
+     * and another class's config. A config holding the chat as [DIRECT_DATA], next to a static one.
+     */
+    private fun viewerClasses(
+        requests: Int = 1,
+        static: Boolean = false,
+        returns: String = "V",
+        locals: Int = 2,
+        entered: Boolean = false,
+        reads: List<String> = listOf("config", "config"),
+        chats: Int = 1,
+    ): List<ClassDef> {
+        val scratch = if (locals == 0) "p2" else "v${locals - 1}"
+        val name = if (requests == 0) "active_section_on_end" else MORE_REELS
+        val body = """
+            ${if (entered) ":top" else ""}
+            const-string $scratch, "$name"
+            ${reads.joinToString("\n") { "iget-object $scratch, p0, $viewer->$it:$VIEWER_CONFIG" }}
+            iget-object $scratch, p0, $viewer->items:Ljava/util/List;
+            iget-object $scratch, p0, Lfixture/Other;->config:$VIEWER_CONFIG
+            ${if (entered) "goto :top" else "return-void"}
+        """
+        val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val flags = final or (if (static) AccessFlags.STATIC.value else 0)
+        val takes = listOf("Ljava/util/List;", "Z", "Z", "Z")
+        val asks = List(maxOf(requests, 1)) { method(viewer, if (it == 0) "more" else "more$it", takes, returns, locals, flags, body) }
+        val open = method(viewer, "open", emptyList(), "V", 1, final, "iget-object v0, p0, $viewer->config:$VIEWER_CONFIG\nreturn-void")
+        val fields = List(chats) { ImmutableField(VIEWER_CONFIG, if (it == 0) "chat" else "chat$it", DIRECT_DATA, final, null, null, null) } +
+            ImmutableField(VIEWER_CONFIG, "NONE", DIRECT_DATA, final or AccessFlags.STATIC.value, null, null, null) +
+            ImmutableField(VIEWER_CONFIG, "thread", "Ljava/lang/String;", final, null, null, null)
+        return listOf(classDef(viewer, asks + open), classDef(VIEWER_CONFIG, emptyList(), fields = fields))
+    }
+
     /** The chat reels test gets its flag answered through the extension, and nothing else changes. */
     @Test
     fun theTestIsAnswered() {
@@ -349,8 +495,8 @@ class SwipeChatReelsHookTest {
         return ImmutableMethod.of(mutable)
     }
 
-    private fun classDef(type: String, methods: List<Method>, interfaces: List<String> = emptyList()): ClassDef =
-        ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", interfaces, null, null, null, methods)
+    private fun classDef(type: String, methods: List<Method>, interfaces: List<String> = emptyList(), fields: List<Field> = emptyList()): ClassDef =
+        ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", interfaces, null, null, fields, methods)
 
     private fun Method.loadsTheFlag(): Boolean = code().any {
         it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == CHAT_REELS_FLAG

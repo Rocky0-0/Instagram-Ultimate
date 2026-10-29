@@ -30,6 +30,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Swipe through a chat's reels"
@@ -66,6 +67,19 @@ internal const val DUAL_PAGING = "AbstractPaginatingClipsItemsFetcher.makeDualPa
 internal const val CHAT_REELS_PATH = "clips/direct_thread_clips/"
 
 /**
+ * What the Reels viewer's request for more reels past the ones it holds logs (LX/02HP;->A1R on 453).
+ * Opened from a chat with the chain, the viewer holds the chat's reels and this request asks the
+ * default source, or Instagram's prefetched Reels, for suggested ones. Only that request loads it.
+ */
+internal const val MORE_REELS = "active_section_on_start"
+
+/** What the Reels viewer was opened with. Redex keeps the name. */
+internal const val VIEWER_CONFIG = "Lcom/instagram/clips/intf/ClipsViewerConfig;"
+
+/** The chat a reel was opened from, which [VIEWER_CONFIG] holds only then. Redex keeps the name. */
+internal const val DIRECT_DATA = "Lcom/instagram/clips/intf/ClipsViewerDirectData;"
+
+/**
  * Swiping up on a reel opened from a chat goes through the other reels shared in that chat before
  * any suggested reels (#350), and with the second switch stops after them (#390). In the default
  * selection with both switches off. The first answers Instagram's own test, so the chain, its order
@@ -83,11 +97,13 @@ val swipeChatReelsPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("chatReels")
-        // Both finders refuse before either switch changes any code.
+        // Every finder refuses before either switch changes any code.
         val read = findChatReels()
         val end = findChatReelsEnd()
+        val more = findMoreReels()
         chainChatReels(read)
         stopAfterChatReels(end)
+        stopMoreReels(more)
         enableStatus("chatReels")
     }
 }
@@ -201,5 +217,68 @@ internal fun BytecodePatchContext.stopAfterChatReels(found: ChatReelsEnd = findC
             return-void
         """,
         ExternalLabel("instagram", paging.getInstruction(0)),
+    )
+}
+
+/**
+ * The viewer's request for more reels, the viewer's [VIEWER_CONFIG] field it reads, and the
+ * config's [DIRECT_DATA] field.
+ */
+internal class MoreReels(val request: MutableMethod, val config: String, val direct: String)
+
+/**
+ * Finds the viewer's request for more reels before anything changes: the one method loading
+ * [MORE_REELS], an instance method returning nothing, with a local for the hook's answer and nothing
+ * jumping to its first instruction. It reads one [VIEWER_CONFIG] field of its own class, and the
+ * config holds one [DIRECT_DATA] field. Fails when any of it isn't so.
+ */
+internal fun BytecodePatchContext.findMoreReels(): MoreReels {
+    val requests = classesLoadingString(MORE_REELS).flatMap { holder -> holder.methods.filter { loadsString(it, MORE_REELS) } }
+    val request = requests.singleOrNull() ?: refuse("expected one method loading \"$MORE_REELS\", found ${requests.size}")
+    val where = "${request.definingClass}->${request.name}"
+    if (AccessFlags.STATIC.isSet(request.accessFlags) || request.returnType != "V") {
+        refuse("$where(${request.parameterTypes.joinToString("")})${request.returnType} isn't an instance request returning nothing")
+    }
+    if (request.localRegisterCount() < 1) refuse("$where has no local for the answer")
+    if (0 in request.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
+
+    val configs = request.implementation!!.instructions.mapNotNull { instruction ->
+        if (instruction.opcode != Opcode.IGET_OBJECT) return@mapNotNull null
+        val field = (instruction as ReferenceInstruction).reference as FieldReference
+        if (field.definingClass == request.definingClass && field.type == VIEWER_CONFIG) "$field" else null
+    }.distinct()
+    val config = configs.singleOrNull() ?: refuse("$where reads ${configs.size} $VIEWER_CONFIG fields of its viewer, not one")
+    val directs = classDefBy(VIEWER_CONFIG).fields.filter { it.type == DIRECT_DATA && !AccessFlags.STATIC.isSet(it.accessFlags) }
+    val direct = directs.singleOrNull() ?: refuse("$VIEWER_CONFIG holds ${directs.size} $DIRECT_DATA fields, not one")
+
+    val takes = request.parameterTypes.map(CharSequence::toString)
+    val mutable = mutableClassDefBy(request.definingClass).methods.single { method ->
+        method.name == request.name && method.parameterTypes.map(CharSequence::toString) == takes
+    }
+    return MoreReels(mutable, config, "$VIEWER_CONFIG->${direct.name}:$DIRECT_DATA")
+}
+
+/**
+ * Asks the extension through [STOP] first in the viewer's request for more reels, only when the
+ * viewer was opened from a chat (its config holds the chat). A yes returns before anything is asked
+ * for, so the viewer ends after the reels it was opened with, the chat's own. Everything else goes
+ * on to Instagram.
+ */
+internal fun BytecodePatchContext.stopMoreReels(found: MoreReels = findMoreReels()) {
+    val request = found.request
+    request.addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v0, p0
+            iget-object v0, v0, ${found.config}
+            if-eqz v0, :instagram
+            iget-object v0, v0, ${found.direct}
+            if-eqz v0, :instagram
+            invoke-static { }, $STOP
+            move-result v0
+            if-eqz v0, :instagram
+            return-void
+        """,
+        ExternalLabel("instagram", request.getInstruction(0)),
     )
 }
