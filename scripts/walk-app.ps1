@@ -298,7 +298,13 @@ function Invoke-WalkApp {
                     $section = $null
                     if ($Destination.page) {
                         $settled = Get-WalkSettledArea $current $Destination.title
-                        $current = $settled.Capture; $section = $settled.Area
+                        # A section that finished opening during the settle already shows its rows; a tap would fold it.
+                        if (-not [object]::ReferenceEquals($settled.Capture, $current)) {
+                            $current = $settled.Capture
+                            $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
+                            if ($content.Valid) { return [pscustomobject]@{ Capture=$current; Expanded=$false } }
+                        }
+                        $section = $settled.Area
                     }
                     if ($null -ne $section) {
                         # A heading at the foot of the list can sit in the system's bottom gesture area, where a

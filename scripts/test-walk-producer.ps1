@@ -135,10 +135,12 @@ function Invoke-WalkCapture {
         UiSha256=('d'*64); AfterUiSha256=('e'*64); ImageSha256=('f'*64) }
 }
 function Test-WalkDestinationContent {
-    param($Destination)
+    param($Destination, $Document)
+    # Rows still sliding open sit at zero bounds, which the real check doesn't count as visible.
+    $landed=$null -eq $Document -or -not $Document.OuterXml.Contains('[0,0][0,0]')
     $valid=$Destination.id -ceq $state.current -or
         ($Destination.id -ceq 'settings-pause' -and $state.current -ceq 'settings-root') -or
-        ($Destination.id -ceq 'settings-fixture' -and $state.current -ceq 'settings-root' -and ($state.settingsMode -ceq 'flat' -or $state.expanded))
+        ($Destination.id -ceq 'settings-fixture' -and $state.current -ceq 'settings-root' -and ($state.settingsMode -ceq 'flat' -or ($state.expanded -and $landed)))
     [pscustomobject]@{ Valid=$valid; Reason='The requested destination is not active.' }
 }
 function Test-WalkReceipt { [pscustomobject]@{ Valid=(-not $state.rejectProof); Reason='The complete proof was refused.' } }
@@ -239,8 +241,14 @@ try {
     Reset-Producer; $state.settingsMode='pages'; $state.animateFor=99
     $path=Invoke-WalkApp @arguments
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 1 -and $state.tapCaptures -eq 2 -and
-        @($receipt.problems | Where-Object { $_ -like '*could not be folded*' }).Count -eq 1) 'A heading stuck at zero bounds was re-read more than once, tapped or earned PASS.'
+    # Stuck: the rows get one more look after the tap, and so does the heading, then the section is reported.
+    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 1 -and $state.tapCaptures -eq 3 -and
+        @($receipt.problems | Where-Object { $_ -like '*expanded without a verified row*' }).Count -eq 1) 'A heading stuck at zero bounds was re-read more than once, tapped or earned PASS.'
+    # A section that finishes opening during the settle is observed as it is, not tapped shut.
+    Reset-Producer; $state.settingsMode='pages'; $state.expanded=$true; $state.animating=2
+    $path=Invoke-WalkApp @arguments
+    $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    Assert-Producer ($receipt.result -ceq 'PASS' -and $state.headingTaps -eq 0 -and $state.expanded) "A section that settled open during the re-read was tapped: $($receipt.problems -join '; ')"
     # A missing heading is reported once the list stops moving, not after 24 swipes each way.
     foreach ($scrolledAway in @($false,$true)) {
         Reset-Producer; $state.settingsMode='pages'; $state.headingAbsent=$true; $state.searchScrolledAway=$scrolledAway
