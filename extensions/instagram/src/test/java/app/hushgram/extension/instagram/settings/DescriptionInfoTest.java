@@ -9,8 +9,10 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.pm.ApplicationInfo;
 import android.os.SystemClock;
 import android.preference.SwitchPreference;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.accessibility.AccessibilityManager;
@@ -116,6 +118,48 @@ public class DescriptionInfoTest {
         assertTrue(shown.isShowing());
         assertEquals(DESCRIPTION, shadowOf(shown).getMessage().toString());
         assertEquals("Hide the HushGram row", shadowOf(shown).getTitle().toString());
+    }
+
+    @Test public void theMarkGrowsWithALargerFont() {
+        Settings.DESCRIPTIONS_BEHIND_INFO.save(true);
+        SwitchPreference row = row();
+        View view = bind(row, null);
+        TextView title = view.findViewById(android.R.id.title);
+        int usual = title.getCompoundDrawablesRelative()[2].getBounds().width();
+        // Android's bind puts the title back to its usual size, so the larger one goes straight
+        // to the "i", as a larger font size reaches it on a phone.
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32);
+        DescriptionInfo.bind(view, DESCRIPTION);
+        view.measure(View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        view.layout(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
+        int large = title.getCompoundDrawablesRelative()[2].getBounds().width();
+        assertEquals("as tall as the title's letters", Math.round(title.getTextSize()), large);
+        assertTrue("grew from " + usual, large > usual);
+        assertTrue("a tap on the bigger i still shows the description", press(title, title.getWidth() - 2));
+        assertNotNull(ShadowAlertDialog.getLatestAlertDialog());
+    }
+
+    @Test public void rightToLeftPutsTheMarkOnTheLeft() {
+        controller.get().getApplicationInfo().flags |= ApplicationInfo.FLAG_SUPPORTS_RTL;
+        Settings.DESCRIPTIONS_BEHIND_INFO.save(true);
+        SwitchPreference row = row();
+        View view = bind(row, null);
+        view.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        bind(row, view);
+        TextView title = view.findViewById(android.R.id.title);
+        assertEquals(View.LAYOUT_DIRECTION_RTL, title.getLayoutDirection());
+        assertTrue("the title is wider than its i, " + title.getWidth(), title.getWidth() > 80);
+
+        assertFalse("the title's start, on the right, is the row's to flip",
+                DescriptionInfo.onMark(title, title.getWidth() - 1));
+        press(title, title.getWidth() - 1);
+        assertNull(ShadowAlertDialog.getLatestAlertDialog());
+
+        assertTrue(press(title, 2));
+        AlertDialog shown = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull("a tap on the i at the left shows the description", shown);
+        assertEquals(DESCRIPTION, shadowOf(shown).getMessage().toString());
     }
 
     @Test public void aRecycledRowGetsItsDescriptionBack() {

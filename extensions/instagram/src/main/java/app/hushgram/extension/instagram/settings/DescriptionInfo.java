@@ -56,8 +56,10 @@ final class DescriptionInfo {
         // Android's own bind shows the summary again on the next bind, so hiding it here is undone
         // for a row that no longer wants it.
         summary.setVisibility(View.GONE);
-        Mark mark = new Mark(title.getCurrentTextColor(), dp(title, 16));
-        mark.setBounds(0, 0, dp(title, 16), dp(title, 16));
+        // As tall as the title's letters, so a larger font size grows it along with them.
+        int size = Math.max(dp(title, 16), Math.round(title.getTextSize()));
+        Mark mark = new Mark(title.getCurrentTextColor(), size);
+        mark.setBounds(0, 0, size, size);
         title.setCompoundDrawablesRelative(null, null, mark, null);
         title.setCompoundDrawablePadding(dp(title, 6));
         title.setTag(TAG);
