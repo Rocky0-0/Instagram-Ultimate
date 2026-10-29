@@ -368,6 +368,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     @Override
+    public View onCreateView(android.view.LayoutInflater inflater, android.view.ViewGroup container,
+                             Bundle savedInstanceState) {
+        View root = super.onCreateView(inflater, container, savedInstanceState);
+        ListView list = root == null ? null : root.findViewById(android.R.id.list);
+        // The search field keeps the focus while its typing filters the rows (TypingFocusHold).
+        if (list != null) TypingFocusHold.around(list);
+        return root;
+    }
+
+    @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         ListView list = view.findViewById(android.R.id.list);
