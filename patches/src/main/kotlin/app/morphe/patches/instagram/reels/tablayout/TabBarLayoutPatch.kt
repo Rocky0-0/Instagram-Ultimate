@@ -31,20 +31,22 @@ private const val SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val CONFIGS = "Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;"
 
 /**
- * The server config Instagram 452 asks whether an account gets the newer tab bar, the one with
+ * The server config Instagram 453 asks whether an account gets the newer tab bar, the one with
  * Messages on it and a sideways swipe between every tab. Only two methods load it: the gate the
- * patch hooks, which reads it as a boolean, and one that reads a string from it.
+ * patch hooks, which reads it as a boolean, and one that reads a string from it. 452 had it as
+ * 0x2081080a00102a78. The 453 retarget first took 0x208102ea00060a8d, a pending DM inbox gate of
+ * the same shape that the tab host never asks, so the choice did nothing on 453.
  */
-internal const val NEW_TAB_BAR_FLAG = 0x208102ea00060a8dL
+internal const val NEW_TAB_BAR_FLAG = 0x208107fa00102a5cL
 
 /**
  * Picks the tab bar, newer or classic, instead of leaving it to Instagram (#356). Included in the
  * default selection with the choice on Instagram's, so the bar stays the one Instagram picks until
  * the user picks another.
  *
- * Instagram 452 asks one static method, `(UserSession)Z`, whether the account gets the newer bar.
+ * Instagram 453 asks one static method, `(UserSession)Z`, whether the account gets the newer bar.
  * It returns a stored override's answer when there is one, and otherwise the [NEW_TAB_BAR_FLAG]
- * config or a second gate. The tab host and about 45 other places ask it, so a server change can
+ * config or a second gate. The tab host and about 120 other places ask it, so a server change can
  * move an account from one bar to the other between two launches. Each of the method's returns
  * hands its answer to [NEW_TAB_BAR] first, so every caller gets the bar the user picked.
  */

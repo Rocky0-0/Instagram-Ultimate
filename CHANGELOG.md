@@ -13,6 +13,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Tab bar layout:** Picking Classic or Swipe under Tab bar works on Instagram 453 again. On 0.0.17 it changed nothing, since the patch was answering an Instagram setting the tab bar never reads. Reported in #356.
 * **Instagram - HushGram settings:** Typing fast in the settings search keeps every letter. The list used to take the focus from the field while it filtered, so a letter could go missing or come out twice.
 * **Instagram - View stories anonymously:** A story you've just watched with `Gray out stories you've watched` on stays where it was in the tray until you pull down to refresh. It used to jump to the right the moment you closed it. Reported in #377.
 * **Tooling:** When patching for a phone stops on an Instagram build with no reviewed coverage, the message now names the builds that have it, so you know which one to patch.

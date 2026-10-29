@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -36,6 +37,7 @@ class TabBarLayoutHookTest {
     private val session = "Lcom/instagram/common/session/UserSession;"
     private val configs = "Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;"
     private val gateType = "Lfixture/NavGate;"
+    private val tabHost = "Lcom/instagram/mainactivity/InstagramMainActivity;"
     private val flagHex = NEW_TAB_BAR_FLAG.toString(16)
 
     /** The hook the patch writes is in the TabBarLayout the bundle ships, public and static. */
@@ -74,22 +76,35 @@ class TabBarLayoutHookTest {
         }
     }
 
-    /** On every 452 build: one gate, every return answered, and every branch that reached a return now reaches the call. */
+    /**
+     * On every 453 build: one gate, the tab host asks it, every return answered, and every branch that
+     * reached a return now reaches the call. A same-shaped gate the tab host never asks (the first 453
+     * flag was one) would hook cleanly and change nothing on the phone.
+     */
     @Test
     fun eachBuildAnswersEveryReturnOfTheGate() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
+        assertEquals("every 453 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val holders = mutableListOf<ClassDef>()
+            val hostCalls = mutableSetOf<String>()
             FixtureDex.forEach(bundle) { dex ->
                 for (classDef in dex.classes) {
                     if (classDef.methods.any { it.loadsFlag() }) holders += ImmutableClassDef.of(classDef)
+                    if (classDef.type != tabHost) continue
+                    for (method in classDef.methods) {
+                        for (instruction in method.implementation?.instructions ?: emptyList()) {
+                            val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: continue
+                            hostCalls += "${called.definingClass}->${called.name}"
+                        }
+                    }
                 }
             }
             assertTrue("${bundle.name}: classes loading $flagHex: ${holders.map { it.type }}", holders.isNotEmpty())
             val context = PatchContexts.of(holders)
             val found = context.findTabBarGate()
+            assertTrue("${bundle.name}: $tabHost never asks ${found.definingClass}->${found.name}", "${found.definingClass}->${found.name}" in hostCalls)
             val returns = found.code().count { it.opcode == Opcode.RETURN }
             context.hookTabBarGate()
             val gate = context.mutableClassDefBy(found.definingClass).methods.single {
@@ -131,7 +146,7 @@ class TabBarLayoutHookTest {
         error("no instruction at $units code units")
     }
 
-    /** Shaped like 452's 07xk.A05: an override first, then the config, then a second gate, with a branch straight to a return. */
+    /** Shaped like 453's 00SK.A04 (452's 07xk.A05): an override first, then the config, then a second gate, with a branch straight to a return. */
     private fun gateBody(flag: Long = NEW_TAB_BAR_FLAG, boolean: Boolean = true) = """
         const/4 v4, 0x0
         invoke-static {v5}, Lfixture/Override;->of($session)Ljava/lang/Object;
