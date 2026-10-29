@@ -33,6 +33,8 @@ import app.hushgram.extension.shared.L10n;
 final class DescriptionInfo {
     /** The title's tag while it carries the "i", so a recycled row can be put back. */
     static final String TAG = "hushgram_description_info";
+    /** Set while a search is on: a row found by a word of its description shows that word. */
+    static volatile boolean searching;
 
     private DescriptionInfo() {
     }
@@ -68,7 +70,7 @@ final class DescriptionInfo {
 
     /** Whether a row with [description] shows it behind the "i" now. */
     static boolean wanted(Context context, @Nullable CharSequence description) {
-        if (TextUtils.isEmpty(description) || !Settings.DESCRIPTIONS_BEHIND_INFO.savedValue()) return false;
+        if (TextUtils.isEmpty(description) || searching || !Settings.DESCRIPTIONS_BEHIND_INFO.savedValue()) return false;
         AccessibilityManager accessibility = context.getSystemService(AccessibilityManager.class);
         return accessibility == null || !accessibility.isTouchExplorationEnabled();
     }

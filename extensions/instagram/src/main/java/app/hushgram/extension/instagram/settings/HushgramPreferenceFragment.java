@@ -465,6 +465,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ExportStatus.CONFIGURATION.finish(configurationExportToken, L10n.t("Settings export canceled."));
         }
         NewRowDots.stop();
+        DescriptionInfo.searching = false;
         super.onDestroy();
     }
 
@@ -1211,6 +1212,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         String[] terms = normalized.isEmpty() ? new String[0] : normalized.split("\\s+");
         boolean pages = categoryPages();
         NewRowDots.searching(terms.length > 0);
+        if (DescriptionInfo.searching != terms.length > 0) {
+            DescriptionInfo.searching = terms.length > 0;
+            rebindRows();
+        }
         rankForSearch(terms);
         // Search reveals matching rows without changing the sections the person expanded.
         boolean listing = pages && terms.length == 0;

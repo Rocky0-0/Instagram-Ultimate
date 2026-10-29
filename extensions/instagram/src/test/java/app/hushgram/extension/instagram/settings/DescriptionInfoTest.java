@@ -53,6 +53,7 @@ public class DescriptionInfoTest {
 
     @After public void close() {
         Settings.DESCRIPTIONS_BEHIND_INFO.resetToDefault();
+        DescriptionInfo.searching = false;
         controller.close();
     }
 
@@ -139,6 +140,12 @@ public class DescriptionInfoTest {
     @Test public void aScreenReaderExploringByTouchKeepsTheFullText() {
         Settings.DESCRIPTIONS_BEHIND_INFO.save(true);
         shadowOf(controller.get().getSystemService(AccessibilityManager.class)).setTouchExplorationEnabled(true);
+        assertShownAsBefore(bind(row(), null));
+    }
+
+    @Test public void aSearchShowsTheDescriptionsItMatched() {
+        Settings.DESCRIPTIONS_BEHIND_INFO.save(true);
+        DescriptionInfo.searching = true;
         assertShownAsBefore(bind(row(), null));
     }
 
