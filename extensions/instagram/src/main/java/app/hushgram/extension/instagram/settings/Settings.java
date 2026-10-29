@@ -2463,6 +2463,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_convert", FALSE);
 
     /**
+     * Passes AV1 tracks over, for a phone that plays AV1 badly (#379): a video Instagram has at
+     * full size only as AV1 is saved as VP9 when it has that size as VP9, or at its largest H.264
+     * size, and {@link #DOWNLOAD_CONVERT} converts only VP9. Starts off.
+     */
+    public static final BooleanSetting DOWNLOAD_NO_AV1 =
+            new BooleanSetting("hushgram_download_no_av1", FALSE);
+
+    /**
      * A save remembers what reached the gallery, and the same post, carousel page, reel, story,
      * cover or recording isn't saved again while its file is still where the save put it (#150).
      * Save all saves only the pages not saved before. Asked again within 30 seconds of being
