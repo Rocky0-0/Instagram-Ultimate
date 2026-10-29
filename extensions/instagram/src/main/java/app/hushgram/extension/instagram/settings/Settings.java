@@ -2297,6 +2297,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_reels_with_sound", FALSE);
 
     /**
+     * Two fingers zoom into a playing reel, through Instagram's own Reels zoom and its two server
+     * flags ({@link app.hushgram.extension.instagram.reels.ReelZoom}). Instagram reads them once a
+     * session, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting PINCH_ZOOM_REELS =
+            new BooleanSetting("hushgram_pinch_zoom_reels", FALSE, true);
+
+    /**
      * A video or reel over two minutes left partway picks up there the next time a player starts
      * it ({@link app.hushgram.extension.instagram.media.ResumePlayback}). Starts off: it keeps the
      * IDs of the videos you left partway, for 30 days, in the app's own storage.

@@ -426,6 +426,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Pinch to zoom on Reels patch. */
+    public static boolean reelZoom() {
+        return false;
+    }
+
     public static boolean reelAutoScroll() {
         return false;
     }

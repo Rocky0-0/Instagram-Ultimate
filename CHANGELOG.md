@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Pinch to zoom on Reels:** new patch. `Pinch to zoom` under Reels lets two fingers zoom into a playing reel the way a photo zooms, and it goes back when you lift them. Starts off. Asked for in #382.
 * **Instagram - HushGram settings:** `Descriptions behind an info button` under Settings entry shows each switch by name alone, with a small i to tap for what it does. Off to start. Asked for in #130.
 * **Instagram - Swipe through a chat's reels:** `Stop after the chat's reels` under Messages ends reels you open from a chat at the last one shared there. No suggested reels follow. Starts off. Asked for in #390.
 * **Instagram - Download any video:** Copy media link under Details now says the link stops working after a few days, since Instagram's file addresses expire. Asked for in #364.
