@@ -141,8 +141,10 @@ function Test-TargetCoverage {
     })
     if ($fixtures.Count -gt 1) { return Bad 'Duplicated reviewed coverage fixture.' }
     if ($fixtures.Count -eq 0) {
+        # Name the reviewed builds, so a device run refused here knows which APK to patch instead.
+        $reviewed = @($Policy.fixtures | ForEach-Object { "$($_.package) $($_.versionName) ($($_.versionCode))" }) -join ', '
         return [pscustomobject]@{ Valid = $true; Reviewed = $false
-            Reason = 'No reviewed coverage expectations for this exact APK. Counts are recorded, not certified.' }
+            Reason = "No reviewed coverage expectations for this exact APK. Counts are recorded, not certified. Reviewed: $reviewed." }
     }
     foreach ($entry in $entries) {
         $rules = @($fixtures[0].families | Where-Object { $_.family -ceq $entry.family })
