@@ -193,11 +193,13 @@ def feature(text):
 
 
 class RefusalTests(unittest.TestCase):
-    SECTION = "\n### Features\n\n* **Instagram:** A new row.\n\n### Bug Fixes\n\n* **Instagram - Hide Meta AI:** A fix.\n"
+    SECTION = "\n### Features\n\n* **Instagram:** A new row.\n\n### Bug Fixes\n\n* **Instagram:** `Hide Meta AI` has a fix.\n"
+    # The shape sections from 0.0.17 and before were written in.
+    OLD_SECTION = "\n### Features\n\n* **Instagram:** A new row.\n\n### Bug Fixes\n\n* **Instagram - Hide Meta AI:** A fix.\n"
     VALIDATION = "Validation: 1 runtime tests passed locally. All 1 patch tests passed too."
 
-    def build(self, section, patches=None):
-        return notes.build_notes(section, self.VALIDATION, "1.0.0", "2026-01-02", "0.9.0", patches)
+    def build(self, section, patches=None, version="1.0.0"):
+        return notes.build_notes(section, self.VALIDATION, version, "2026-01-02", "0.9.0", patches)
 
     def test_clean_section_builds(self):
         body, carried = self.build(self.SECTION, {"Hide Meta AI"})
@@ -261,8 +263,18 @@ class RefusalTests(unittest.TestCase):
 
     def test_unknown_patch_scope(self):
         with self.assertRaises(notes.NotesError) as error:
-            self.build(self.SECTION, {"Something else"})
+            self.build(self.OLD_SECTION, {"Something else"}, version="0.0.17")
         self.assertIn("isn't a patch", str(error.exception))
+
+    def test_patch_scopes_end_after_0_0_17(self):
+        for version in ("0.0.2", "0.0.16", "0.0.17"):
+            with self.subTest(version):
+                self.assertEqual(self.build(self.OLD_SECTION, {"Hide Meta AI"}, version)[1], 2)
+        for version in ("0.0.18", "0.1.0", "1.0.0"):
+            with self.subTest(version), self.assertRaises(notes.NotesError) as error:
+                self.build(self.OLD_SECTION, {"Hide Meta AI"}, version)
+            self.assertIn("name the patch in the text", str(error.exception))
+        self.assertFalse(notes.takes_patch_scopes(None))
 
     def test_validation_is_one_line(self):
         with self.assertRaises(notes.NotesError):
@@ -286,7 +298,7 @@ class RefusalTests(unittest.TestCase):
         self.build("* **Instagram:** " + words(120) + "\n" + self.SECTION)
 
     def test_unreleased_takes_no_patch_scope(self):
-        found = notes.read_bullets(self.SECTION)
+        found = notes.read_bullets(self.OLD_SECTION)
         notes.check_scopes(found, {"Hide Meta AI"})
         with self.assertRaises(notes.NotesError) as error:
             notes.check_scopes(found, {"Hide Meta AI"}, patch_scopes=False)
@@ -300,9 +312,10 @@ class GitHubNotesTests(unittest.TestCase):
                "### Bug Fixes\n\n* **Instagram - Hide Meta AI:** A fix.\n")
     VALIDATION = "Validation: 1 runtime tests passed locally. All 1 patch tests passed too."
 
-    def build(self, section, summary=None, checked=None):
+    # SECTION's patch scope is the 0.0.17 shape, which plain() still has to write out.
+    def build(self, section, summary=None, checked=None, version: str | None = "0.0.17"):
         return notes.build_github_notes(section, self.VALIDATION, "453.0.0.57.79", "2.0.0", {"Hide Meta AI"},
-                                        summary, checked)
+                                        summary, checked, version)
 
     def test_layout(self):
         body, carried = self.build(self.SECTION, checked="The walk passed.")
@@ -337,6 +350,12 @@ class GitHubNotesTests(unittest.TestCase):
             self.build(self.SECTION, summary="Another.")
         self.assertIn("pick one", str(error.exception))
 
+    def test_newer_release_refuses_a_patch_scope(self):
+        for version in ("0.0.18", None):
+            with self.subTest(version), self.assertRaises(notes.NotesError) as error:
+                self.build(self.SECTION, version=version)
+            self.assertIn("name the patch in the text", str(error.exception))
+
     def test_newest_changelog_section(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         newest = re.search(r"^## (\d+\.\d+\.\d+) \(", changelog, re.M).group(1)
@@ -345,7 +364,7 @@ class GitHubNotesTests(unittest.TestCase):
         body, carried = notes.build_github_notes(
             section, "Validation: 1 runtime tests passed locally.", notes.read_target(ROOT / "patches-list.json"),
             notes.read_manager_floor(ROOT / "gradle" / "libs.versions.toml"), notes.read_patches(ROOT / "patches-list.json"),
-            summary)
+            summary, version=newest)
         self.assertEqual(carried, sum(len(b) for b in notes.read_bullets(section).values()))
         self.assertNotIn("**Instagram", body)
         self.assertNotIn("**Tooling", body)

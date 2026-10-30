@@ -6,33 +6,34 @@ Every HushGram release, newest first.
 
 ### Features
 
-* **Instagram - Pinch to zoom on Reels:** new patch. `Pinch to zoom` under Reels lets two fingers zoom into a playing reel the way a photo zooms, and it goes back when you lift them. Starts off. Asked for in #382.
-* **Instagram - HushGram settings:** `Descriptions behind an info button` under Settings entry shows each switch by name alone, with a small i to tap for what it does. Off to start. Asked for in #130.
-* **Instagram - Swipe through a chat's reels:** `Stop after the chat's reels` under Messages ends reels you open from a chat at the last one shared there. No suggested reels follow. Starts off. Asked for in #390.
-* **Instagram - Download any video:** Copy media link under Details now says the link stops working after a few days, since Instagram's file addresses expire. Asked for in #364.
-* **Instagram - Download any video:** `Never save AV1 video` under Downloads is for a phone that plays AV1 badly. A video Instagram has at full size only as AV1 is saved as VP9, or at its largest H.264 size. Starts off. Asked for in #379 and #348.
-* **Instagram - Seek bar on feed videos:** new patch. A bar along the bottom of the video playing in your feed lets you drag to any point in it. The switch is under Feed and starts off. Asked for in #389.
-* **Instagram - Glass tab bar:** `Blur strength` and `Tab bar opacity` under Tab bar are sliders now, 2 to 48 dp and 0 to 150 percent, and the pill follows as you drag. Both start at the old look, and older backups still restore. Asked for in #391.
-* **Instagram - HushGram settings:** When Instagram crashes in the first minute after it opens, HushGram now keeps what crashed, and the diagnostics report you save from settings includes it. Turn on Debug logging to keep later crashes too.
-* **Instagram - Group Instagram's notifications:** `Mute notification types` under Notifications stops the types you tick, like the betting and promo pushes Instagram's own notification settings can't turn off. It works with grouping off. Nothing's muted to start.
+* **Instagram:** `Pinch to zoom on Reels` is a new patch. Its switch, `Pinch to zoom` under Reels, lets two fingers zoom into a playing reel the way a photo zooms, and it goes back when you lift them. Starts off. Asked for in #382.
+* **Instagram:** `HushGram settings` adds `Descriptions behind an info button` under Settings entry. It shows each switch by name alone, with a small i to tap for what it does. Off to start. Asked for in #130.
+* **Instagram:** `Swipe through a chat's reels` adds `Stop after the chat's reels` under Messages, which ends reels you open from a chat at the last one shared there. No suggested reels follow. Starts off. Asked for in #390.
+* **Instagram:** In `Download any video`, Copy media link under Details now says the link stops working after a few days, since Instagram's file addresses expire. Asked for in #364.
+* **Instagram:** `Download any video` adds `Never save AV1 video` under Downloads, for a phone that plays AV1 badly. A video Instagram has at full size only as AV1 is saved as VP9, or at its largest H.264 size. Starts off. Asked for in #379 and #348.
+* **Instagram:** `Seek bar on feed videos` is a new patch. A bar along the bottom of the video playing in your feed lets you drag to any point in it. The switch is under Feed and starts off. Asked for in #389.
+* **Instagram:** In `Glass tab bar`, `Blur strength` and `Tab bar opacity` are sliders now, 2 to 48 dp and 0 to 150 percent, and the pill follows as you drag. Both start at the old look, and older backups still restore. Asked for in #391.
+* **Instagram:** When Instagram crashes in the first minute after it opens, HushGram now keeps what crashed, and the diagnostics report you save from `HushGram settings` includes it. Turn on Debug logging to keep later crashes too.
+* **Instagram:** `Group Instagram's notifications` adds `Mute notification types` under Notifications. It stops the types you tick, like the betting and promo pushes Instagram's own notification settings can't turn off, and works with grouping off. Nothing's muted to start.
 
 ### Bug Fixes
 
-* **Instagram - Tab bar layout:** Picking Classic or Swipe under Tab bar works on Instagram 453 again. On 0.0.17 it changed nothing, since the patch was answering an Instagram setting the tab bar never reads. Reported in #356.
-* **Instagram - Tab bar layout:** A long press on the Search tab opens search with the keyboard up again on the classic bar. Instagram 453 waited for pages only the swipe bar has, so the press just switched to Explore. Reported in #383.
-* **Instagram - Full screen Reels and Home:** With `Full screen Reels` on, going back from a reel you'd opened on someone's profile left their name behind the clock in the status bar. The profile makes room for the bar again now. Reported in #385.
-* **Instagram - HushGram settings:** Typing fast in the settings search keeps every letter. The list used to take the focus from the field while it filtered, so a letter could go missing or come out twice.
-* **Instagram - View stories anonymously:** A story you've just watched with `Gray out stories you've watched` on stays where it was in the tray until you pull down to refresh. It used to jump to the right the moment you closed it. Reported in #377.
+* **Instagram:** Picking Classic or Swipe in `Tab bar layout` works on Instagram 453 again. On 0.0.17 it changed nothing, since the patch was answering an Instagram setting the tab bar never reads. Reported in #356.
+* **Instagram:** With `Tab bar layout`, a long press on the classic bar's Search tab opens search with the keyboard up again. Instagram 453 waited for pages only the swipe bar has, so the press just switched to Explore. Reported in #383.
+* **Instagram:** `Full screen Reels and Home` makes room for the status bar on a profile again. With `Full screen Reels` on, going back from a reel you'd opened there left the person's name behind the clock. Reported in #385.
+* **Instagram:** Typing fast in the `HushGram settings` search keeps every letter. The list used to take the focus from the field while it filtered, so a letter could go missing or come out twice.
+* **Instagram:** With `Gray out stories you've watched` on in `View stories anonymously`, a story you've just watched keeps its place in the tray until you pull down to refresh. It used to jump right the moment you closed it. Reported in #377.
 * **Tooling:** When patching for a phone stops on an Instagram build with no reviewed coverage, the message now names the builds that have it, so you know which one to patch.
 * **Tooling:** Patching for a phone without `-Apk` takes the declared Instagram build from the fixture folder the way the release gate does, `.apks` bundles included. It used to skip `.apks` and take any file with the version in its name.
 * **Tooling:** The whole-app walk takes one more look, after a short pause, at a settings heading it caught mid-animation. It used to call the heading missing and fail the walk when a section was still opening or folding.
 * **Tooling:** When a settings heading isn't there, the whole-app walk says so as soon as the list stops moving. It used to keep swiping up past the top of the list, 24 times each way.
 * **Tooling:** Patch results, records and the patch catalog are read as strict JSON. A file that names a field twice could read as a pass and a failure at once, so it's refused.
+* **Tooling:** The release notes check refuses a bullet scoped to a patch name in any section after 0.0.17, Unreleased included, so each bullet names its patch in the text. It used to pass any dated section.
 
 ### Improvements
 
 * **Instagram:** HushGram now patches Instagram 453.0.0.57.79 instead of 453.0.0.55.79. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385914557. Its armeabi-v7a (385914556) and x86 (385914558) builds are declared too. Meta published no x86_64 build this time.
-* **Instagram - Keep a seek bar on Reels:** Manager lists it under Playback now, next to Seek bar on feed videos, so the Reels group stays short enough to scan. Its switch is still under Reels.
+* **Instagram:** Manager lists `Keep a seek bar on Reels` under Playback now, next to `Seek bar on feed videos`, so the Reels group stays short enough to scan. Its switch is still under Reels.
 
 ## 0.0.17 (2026-10-28)
 
