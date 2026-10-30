@@ -551,19 +551,22 @@ shared-call Lapp/hushgram/extension/instagram/stories/StoryMentions;->bind(Ljava
 # out, the pill shows but tapping it does nothing (#125).
 once-call Lapp/hushgram/extension/instagram/stories/StoryMentions;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
 # Show a post's exact time puts PostTime.time() in place of Instagram's relative formatter call,
-# on the same registers, wherever a post's or a comment's time is written. On 453's arm64 build:
-# twice in the feed post footer's builder (08lQ.A03), which took in the label below the comments
-# 452 built apart, once in each of the two merged lambdas the Compose comment header's callers hand
-# it (0BVG.A0A in the Reels viewer's lambda class and 0BWC.A07 in search's, twins told apart by their
-# classes, both reading the header state's Resources field and calling a static (Object)J), once in
-# the older comment row's time lambda (0BVE.invoke, holding "three_dot_menu" and the row's drawable),
-# and once in its static helper for the epoch-seconds time (0BVE.A0K), the one reading the row's time
-# field 0JCz.A08 and loading the row's string resource. Left out, a time stays relative; elsewhere, it
-# isn't the call the patch wrote.
+# on the same registers, wherever a post's or a comment's time is written. On 453.0.0.57.79's arm64
+# build: twice in the feed post footer's builder (08lL.A03), which took in the label below the
+# comments 452 built apart, once in each of the two merged lambdas the Compose comment header's
+# callers hand it, both reading the header state's Resources field and calling a static (Object)J:
+# the Reels viewer's, whose case is inlined into its class's invoke (0984.invoke, holding
+# "clipsViewerFragmentController"), and search's static case (0989.A0C, in the lambda class holding
+# "formattedTimeProvider"). Then once in the older comment row's time lambda (0ArG.invoke, reading the
+# row's time field 0JCi.A08 and loading the row's drawable), and once in its static helper for the
+# epoch-seconds time (0ArG.A0H), reading the same field and loading the row's string resource. 55.79's
+# twins were static cases in classes holding isPostSeriesSegmentItem and onAigmLabelTapped, and its
+# row lambda held "three_dot_menu", which 57.79 dropped. Left out, a time stays relative; elsewhere,
+# it isn't the call the patch wrote.
 shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance (Landroid/content/Context;Lcom/instagram/feed/media/Media;L*;L*;L*;Z)L*; sites 2 holding CoalescedFooterUseCase#getUiState LabelBelowCommentUseCase#getUiState
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in static (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; calling static LX/*;->*(Ljava/lang/Object;)J class-holding isPostSeriesSegmentItem LX/*;->A01:Landroid/content/res/Resources;
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in static (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; calling static LX/*;->*(Ljava/lang/Object;)J class-holding onAigmLabelTapped LX/*;->A01:Landroid/content/res/Resources;
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance ()Ljava/lang/Object; holding three_dot_menu const:0x7f081e89
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in instance (Ljava/lang/Object;)Ljava/lang/Object; calling static LX/*;->*(Ljava/lang/Object;)J holding clipsViewerFragmentController LX/*;->A01:Landroid/content/res/Resources;
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in static (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; calling static LX/*;->*(Ljava/lang/Object;)J class-holding formattedTimeProvider LX/*;->A01:Landroid/content/res/Resources;
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance ()Ljava/lang/Object; holding LX/*;->A08:Ljava/lang/Long; const:0x7f081e89
 shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;J)Ljava/lang/String; in static (LX/*;)Ljava/lang/Object; holding LX/*;->A08:Ljava/lang/Long; const:0x7f133883
 # Show when someone was last active asks LastActive.exact() with the time a person was last on, in the one
 # method that turns it into Active 5m ago, Active 3h ago or Active yesterday: an instance (Resources, List)
@@ -1101,21 +1104,22 @@ shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->save(Ljav
 # kept name, calls offer() once, where the rows for anyone else's post start. The feed menu's
 # handler of a tapped option asks save() first; it's the one instance method taking an option that
 # holds both strings below. The call follows the check for Download and the read of the post, so
-# it isn't first, and the rule is once-call.
-once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; holding cns_client_event
-once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->offerAll(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; holding cns_client_event
+# it isn't first, and the rule is once-call. On 453.0.0.57.79 the builder (0S34.A0A) asks a string
+# pool (0061.A00) for cns_client_event instead of loading it, so these rules take pooled strings.
+once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; pooled holding cns_client_event
+once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->offerAll(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; pooled holding cns_client_event
 once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->allOption()Ljava/lang/Object; in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->saveAll(Ljava/lang/Object;Landroid/app/Activity;)V in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->save(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)Z in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
-once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->offerPlayer(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; holding cns_client_event
+once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->offerPlayer(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; pooled holding cns_client_event
 once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->playerOption()Ljava/lang/Object; in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->play(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 # Details: offered beside Open in another player by the same builder, and its tap handled by the same handler.
-once-call Lapp/hushgram/extension/instagram/download/PostInfo;->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; holding cns_client_event
+once-call Lapp/hushgram/extension/instagram/download/PostInfo;->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; pooled holding cns_client_event
 once-call Lapp/hushgram/extension/instagram/download/PostInfo;->option()Ljava/lang/Object; in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 once-call Lapp/hushgram/extension/instagram/download/PostInfo;->show(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 # Download cover (#94): offered right after Save all by the same builder, and its tap handled by the same handler.
-once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->offerCover(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; holding cns_client_event
+once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->offerCover(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; pooled holding cns_client_event
 once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->coverOption()Ljava/lang/Object; in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->saveCover(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 # Choose pages: offered by offerAll() with Save all, and its tap handled by the same handler after the current page's Download.
@@ -1124,8 +1128,8 @@ once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->choosePages
 # Your own posts (#57): the same builder passes the answer of Instagram's check of whether your post
 # may be downloaded through ownPost() right after its move-result, and the flag it reads past a yes
 # through ownPostRow(), once each. Like offer(), these pick one method on 385611404, 431 and 438.
-once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->ownPost(ILjava/lang/Object;)I in (*)Ljava/lang/Object; holding cns_client_event
-once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->ownPostRow(ILjava/lang/Object;)I in (*)Ljava/lang/Object; holding cns_client_event
+once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->ownPost(ILjava/lang/Object;)I in (*)Ljava/lang/Object; pooled holding cns_client_event
+once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->ownPostRow(ILjava/lang/Object;)I in (*)Ljava/lang/Object; pooled holding cns_client_event
 # The short menu most of the feed opens keeps only the rows whose option is on a list made by a
 # method holding no string, so the rule picks it by the two options it reads: the one static method
 # taking a flag and answering a list that reads "Why you're seeing this" and Report. It returns
@@ -1134,7 +1138,7 @@ once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->allow(Ljava
 # Hide posts from this account (Hide suggested posts) puts its own hooks in the same three places Download any video
 # uses, so it works with Download left out: offer() where anyone else's rows start, the option and the tap in the
 # handler of a tapped option, and allow() before the return of the short menu's list of kept options.
-once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; holding cns_client_event
+once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; pooled holding cns_client_event
 once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->option()Ljava/lang/Object; in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->hide(Ljava/lang/Object;Landroid/app/Activity;)V in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->allow(Ljava/util/List;)Ljava/util/List; in static (Z)Ljava/util/List; holding Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->WHY_AM_I_SEEING_THIS:Lcom/instagram/feed/media/mediaoption/MediaOption$Option; Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->REPORT:Lcom/instagram/feed/media/mediaoption/MediaOption$Option;
@@ -2041,11 +2045,13 @@ once-call Lapp/hushgram/extension/instagram/feed/RefreshConfirm;->pull(Landroid/
 # before each of the profile menu's two sheets is shown (09D9.A02 on 450), the one method loading
 # both helper names. Left out, the menu never gets the row; a third call, or one elsewhere, isn't
 # what the patch wrote. SaveProfilePictureHookTest checks where both land on each declared build.
-once-call Lapp/hushgram/extension/instagram/download/ProfilePicture;->offer(Ljava/lang/Object;Ljava/lang/Object;Landroid/content/Context;)V in instance (Landroid/view/View;)V sites 2 holding UserOptionsBottomSheetOverflowHelper UserOptionsOverflowHelper
+# On 453.0.0.57.79 that method (0GSM.A02) asks a string pool for both names, so the rules take pooled
+# strings, as the patch's own lookup does.
+once-call Lapp/hushgram/extension/instagram/download/ProfilePicture;->offer(Ljava/lang/Object;Ljava/lang/Object;Landroid/content/Context;)V in instance (Landroid/view/View;)V sites 2 pooled holding UserOptionsBottomSheetOverflowHelper UserOptionsOverflowHelper
 # The same method's third way to show the menu, the newer pop-up list (#29), hands
 # ProfilePicture.offerPopup the list of items, the account and the context right before the popup
 # takes the list. Left out, that list never gets the rows; a second call isn't what the patch wrote.
-once-call Lapp/hushgram/extension/instagram/download/ProfilePicture;->offerPopup(Ljava/util/List;Ljava/lang/Object;Landroid/content/Context;)V in instance (Landroid/view/View;)V holding UserOptionsBottomSheetOverflowHelper UserOptionsOverflowHelper
+once-call Lapp/hushgram/extension/instagram/download/ProfilePicture;->offerPopup(Ljava/util/List;Ljava/lang/Object;Landroid/content/Context;)V in instance (Landroid/view/View;)V pooled holding UserOptionsBottomSheetOverflowHelper UserOptionsOverflowHelper
 # Profile extras button (#234) hands ProfileExtras.bound the profile bar and its right row first thing
 # in the bar's bind (ProfileActionBar.A00 on 452, the same one method Hide the Threads button reads the
 # list in). The bar empties both rows on every bind, so the extension puts its button in again behind
@@ -2334,12 +2340,14 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->applied(Landroi
 # what comes back, so a finished sticker and the shared story get the picked emoji font (#275). Left
 # out, the sticker shows Instagram's emoji after Next; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; in instance (Ljava/lang/CharSequence;Z)Landroid/text/StaticLayout; holding Landroid/text/StaticLayout$Builder;->obtain(Ljava/lang/CharSequence;IILandroid/text/TextPaint;I)Landroid/text/StaticLayout$Builder; Landroid/text/StaticLayout$Builder;->setTextDirection(Landroid/text/TextDirectionHeuristic;)Landroid/text/StaticLayout$Builder;
-# Its subclass measuring each line (0WzZ.A09 on 452) hands the sticker's change to that line to the
-# same hook before laying it out, so each line is measured with the emoji it's drawn with.
-once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; in static (L*;Ljava/lang/CharSequence;)L*; holding Landroid/text/StaticLayout$Builder;->obtain(Ljava/lang/CharSequence;IILandroid/text/TextPaint;I)Landroid/text/StaticLayout$Builder; LX/*;->*(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; LX/*;->*(Landroid/text/StaticLayout$Builder;FF)Landroid/text/StaticLayout;
-# One sticker style below it (0Su2.A06 on 452) measures its placeholder and its last line the same way,
-# so that measure gets the hook too and the line keeps the width it's drawn at.
-once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; in instance (Landroid/text/Spannable;Lkotlin/jvm/functions/Function1;)L*; holding Landroid/text/StaticLayout$Builder;->obtain(Ljava/lang/CharSequence;IILandroid/text/TextPaint;I)Landroid/text/StaticLayout$Builder; LX/*;->*(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; LX/*;->*(Landroid/text/StaticLayout$Builder;FF)Landroid/text/StaticLayout;
+# Its subclass measuring each line (0WzZ.A09 on 452, 0TPb.A09 on 453.0.0.57.79) hands the sticker's
+# change to that line to the same hook before laying it out, so each line is measured with the emoji
+# it's drawn with. 57.79 builds the layout through a static (Builder)StaticLayout helper where the
+# older builds' helper took the builder and two floats.
+once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; in static (L*;Ljava/lang/CharSequence;)L*; holding Landroid/text/StaticLayout$Builder;->obtain(Ljava/lang/CharSequence;IILandroid/text/TextPaint;I)Landroid/text/StaticLayout$Builder; LX/*;->*(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; LX/*;->*(Landroid/text/StaticLayout$Builder;)Landroid/text/StaticLayout;
+# One sticker style below it (0Su2.A06 on 452, 0RVs.A06 on 57.79) measures its placeholder and its
+# last line the same way, so that measure gets the hook too and the line keeps the width it's drawn at.
+once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; in instance (Landroid/text/Spannable;Lkotlin/jvm/functions/Function1;)L*; holding Landroid/text/StaticLayout$Builder;->obtain(Ljava/lang/CharSequence;IILandroid/text/TextPaint;I)Landroid/text/StaticLayout$Builder; LX/*;->*(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; LX/*;->*(Landroid/text/StaticLayout$Builder;)Landroid/text/StaticLayout;
 
 # Feed Subscribe has a native eligibility branch inside the header, without a Subscribe view id.
 once-call Lapp/hushgram/extension/instagram/feed/FeedFollowButton;->showSubscribe(I)Z holding null\scannot\sbe\scast\sto\snon-null\stype\sinstagram.features.feed.ui.rows.mediaheader.domain.uicontract.MediaHeaderUiState
