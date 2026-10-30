@@ -48,7 +48,7 @@ When a patch can't find its target in your Instagram file, patching stops with a
 > [!WARNING]
 > Meta's [Terms of Use](https://help.instagram.com/581066165581870) don't allow modified versions of its apps, and Meta can disable accounts that break them. Nobody outside Meta knows what gets an account suspended, so nobody can promise yours won't be.
 >
-> - **Assume Meta can tell.** A patched Instagram has a different signing certificate, and Instagram 450 carries Play Integrity and Keystore attestation code. `Restore trust on re-signed builds` keeps parts of the app working on a re-signed build, but it doesn't make the APK Meta-signed.
+> - **Assume Meta can tell.** A patched Instagram has a different signing certificate, and Instagram 453 carries Play Integrity and Keystore attestation code. `Restore trust on re-signed builds` keeps parts of the app working on a re-signed build, but it doesn't make the APK Meta-signed.
 > - **Try a spare account first** if you'd rather not put the one you care about on the line. People whose accounts were suspended on patched Instagram often describe a new or long-idle account signing in on a fresh install. That's what they saw, not a proven cause.
 > - **Keep the sign-in you have.** Update over the top with the same signing key, or use Root Mount on a rooted phone, rather than starting fresh each time.
 >
