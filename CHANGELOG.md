@@ -31,6 +31,7 @@ Every HushGram release, newest first.
 ### Improvements
 
 * **Instagram:** HushGram now patches Instagram 453.0.0.57.79 instead of 453.0.0.55.79. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385914557. Its armeabi-v7a (385914556) and x86 (385914558) builds are declared too. Meta published no x86_64 build this time.
+* **Instagram - Keep a seek bar on Reels:** Manager lists it under Playback now, next to Seek bar on feed videos, so the Reels group stays short enough to scan. Its switch is still under Reels.
 
 ## 0.0.17 (2026-10-28)
 

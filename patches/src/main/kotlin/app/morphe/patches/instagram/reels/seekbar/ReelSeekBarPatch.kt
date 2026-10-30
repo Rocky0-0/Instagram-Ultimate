@@ -109,7 +109,7 @@ val reelSeekBarPatch = bytecodePatch(
     description = "Keeps a seek bar under every reel, short ones too, with the time played and the reel's length " +
         "above it, like 0:10 / 0:55. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
-    category("Reels")
+    category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
