@@ -101,7 +101,7 @@ public class CarouselSaveTest {
 
     @Before public void setUp() throws Exception {
         context = RuntimeEnvironment.getApplication();
-        context.getApplicationInfo().targetSdkVersion = 36;
+        context.getApplicationInfo().targetSdkVersion = 37;
         server = new LocalServer();
         LocalCandidates.origin = server.origin();
         MediaSave.policyForTests = new MediaUrlPolicy(host -> new InetAddress[]{InetAddress.getByName("10.9.8.7")}) {

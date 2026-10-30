@@ -37,7 +37,7 @@ public class TypingSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_TYPING.resetToDefault();
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
         BaseSettings.PAUSED.save(false);

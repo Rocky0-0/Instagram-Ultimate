@@ -42,7 +42,7 @@ public class AccentColorSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.ACCENT_COLOR.resetToDefault();
         Settings.ACCENT_HUE.resetToDefault();
         BaseSettings.PAUSED.save(false);

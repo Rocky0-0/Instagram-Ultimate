@@ -35,7 +35,7 @@ public class FollowListSuggestionsSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.resetToDefault();
         Settings.HIDE_PROFILE_COMPLETION.resetToDefault();
         Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.resetToDefault();

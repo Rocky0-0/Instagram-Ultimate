@@ -46,7 +46,7 @@ public class NotificationGroupsSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.GROUP_NOTIFICATIONS.resetToDefault();
         Settings.GROUP_NOTIFICATIONS_BY_TYPE.resetToDefault();
         Settings.MUTED_NOTIFICATION_CHANNELS.resetToDefault();

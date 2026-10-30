@@ -74,7 +74,7 @@ public class ScreenColorsAccessibilityTest {
     private final List<AlertDialog> opened = new ArrayList<>();
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         RuntimeEnvironment.getApplication().getApplicationInfo().flags |= ApplicationInfo.FLAG_SUPPORTS_RTL;
         RuntimeEnvironment.setFontScale(1f);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);

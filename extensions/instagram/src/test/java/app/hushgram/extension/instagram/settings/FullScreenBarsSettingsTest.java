@@ -34,7 +34,7 @@ public class FullScreenBarsSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FILL_REEL_SCREEN.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();

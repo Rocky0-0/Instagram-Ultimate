@@ -36,7 +36,7 @@ public class ThreadSeenSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
         Settings.VIEW_DM_MEDIA_ANONYMOUSLY.resetToDefault();
         BaseSettings.PAUSED.save(false);
