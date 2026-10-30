@@ -24,7 +24,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * {@link #stop()} before a viewer opened from a chat asks for more, and before it asks for that
  * second side, and {@link #stopCached(Object)} before a cached reel goes in, so with the second
  * switch on it ends after the chat's reels (#390). The viewer also puts a loading placeholder
- * after the reels it adds, for the next ones to replace, which {@link #placeholder(Object, boolean)}
+ * after the reels it adds, for the next ones to replace, which {@link #placeholder(Object, int)}
  * leaves out there, so the last page is the chat's last reel and not a gray one that never loads.
  */
 public final class ChatReels {
@@ -75,11 +75,11 @@ public final class ChatReels {
     }
 
     /**
-     * Whether the viewer puts its loading placeholder after the reels it adds: Instagram's [ghost],
-     * except no while {@link #stopCached(Object)} is yes for [source], since nothing would replace
-     * it. Never throws.
+     * Whether the viewer puts its loading placeholder after the reels it adds: Instagram's [ghost]
+     * (nonzero for yes), except no while {@link #stopCached(Object)} is yes for [source], since
+     * nothing would replace it. Never throws.
      */
-    public static boolean placeholder(Object source, boolean ghost) {
-        return ghost && !stopCached(source);
+    public static boolean placeholder(Object source, int ghost) {
+        return ghost != 0 && !stopCached(source);
     }
 }

@@ -92,7 +92,7 @@ internal const val CACHED_REEL = "ClipsViewerFlashMediaController.insertItemToAd
 /** Where a Reels viewer was opened from, DIRECT for a chat. Redex keeps the name. */
 internal const val VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
 
-internal const val PLACEHOLDER = "$CHAT_REELS->placeholder(Ljava/lang/Object;Z)Z"
+internal const val PLACEHOLDER = "$CHAT_REELS->placeholder(Ljava/lang/Object;I)Z"
 
 /**
  * The trace name of the Reels viewer adapter's add of reels (LX/045b;->A0a on 453's 385914283,
