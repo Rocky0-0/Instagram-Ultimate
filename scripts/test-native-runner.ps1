@@ -60,6 +60,8 @@ function New-FakeDevice {
         [switch]$ListUsersFailsAfterCreate,
         # The Android API level the device reports.
         [string]$Sdk = '36',
+        # What settings answers for anr_show_background before the run ('null' when never set).
+        [string]$AnrShown = 'null',
         [string]$FailAt,
         # A parameter, so GetNewClosure captures it rather than the script's copy.
         $Fixture = $target
@@ -72,6 +74,8 @@ function New-FakeDevice {
         TargetInstalls = [System.Collections.Generic.List[string]]::new()
         Stopped = [System.Collections.Generic.List[string]]::new()
         Airplane = $Airplane
+        AnrShown = $AnrShown
+        AnrStart = $AnrShown
         NextUser = 10
         Created = $false
     }
@@ -109,6 +113,9 @@ function New-FakeDevice {
             'shell cmd connectivity airplane-mode' { $out = @($state.Airplane) }
             'shell cmd connectivity airplane-mode enable' { $state.Airplane = 'enabled' }
             'shell cmd connectivity airplane-mode disable' { $state.Airplane = 'disabled' }
+            'shell settings get secure anr_show_background' { $out = @($state.AnrShown) }
+            'shell settings put secure anr_show_background *' { $state.AnrShown = $command[5] }
+            'shell settings delete secure anr_show_background' { $state.AnrShown = 'null'; $out = @('Deleted 1 rows') }
             'shell dumpsys connectivity' {
                 $default = if ($state.Airplane -ceq 'enabled' -and -not $DefaultNetworkStaysUp) { 'none' } else { '103' }
                 $out = @('NetworkProviders for:', "Active default network: $default", 'Current Networks:')
@@ -212,6 +219,7 @@ function Assert-NothingLeft {
     Assert-True ($state.RunnerUsers.Count -eq 0) "${Context}: the runner was left installed."
     Assert-True (@($state.Users | Where-Object { $_ -like '*:hushgram-native-runner' }).Count -eq 0) "${Context}: the test user was left behind."
     Assert-True ($state.Airplane -ceq 'disabled') "${Context}: the network was left off."
+    Assert-True ($state.AnrShown -ceq $state.AnrStart) "${Context}: background ANRs were left at '$($state.AnrShown)', not '$($state.AnrStart)'."
     Assert-True ($state.TargetUsers.Contains('0')) "${Context}: the target was taken from the owner."
     foreach ($call in $state.Calls) {
         Assert-True ($call -notmatch 'uninstall (?!--user [1-9]\d* app\.hushgram\.nativerunner$)|pm clear|remove-user 0\b|install -r|input |am start(?!-user)') "${Context}: a call reached beyond the run's own state: $call"
@@ -304,6 +312,9 @@ try {
     $granted = [Array]::IndexOf($calls, 'shell pm grant --user 10 com.instagram.android android.permission.POST_NOTIFICATIONS')
     $firstCase = [Array]::IndexOf($calls, @($calls | Where-Object { $_ -like '*am instrument*' })[0])
     Assert-True ($granted -gt [Array]::IndexOf($calls, 'shell pm install-existing --user 10 com.instagram.android') -and $granted -lt $firstCase) 'The target could not post notifications when the first case ran.'
+    # A slow first start in the new user has to survive its ANR rather than be killed silently.
+    $shownAt = [Array]::IndexOf($calls, 'shell settings put secure anr_show_background 1')
+    Assert-True ($shownAt -gt $networkSeenAt -and $shownAt -lt $created) 'Background ANRs were not shown before the test user existed.'
     # Before Android 13 there is no such permission to grant, so pm would refuse it and end the run.
     $older = New-FakeDevice -Sdk '32'
     $olderRun = Invoke-FakeSession $older
@@ -312,9 +323,24 @@ try {
     Assert-NothingLeft $older 'A run on Android 12L'
     Assert-True (@($calls | Where-Object { $_ -like 'shell timeout 120 am instrument *' }).Count -eq 8) 'A case ran without its time limit.'
     Assert-True ($device.State.Stopped.Count -eq 0) 'A run that finished in time stopped the target.'
-    Assert-True ($calls[-3] -ceq 'shell pm uninstall --user 10 app.hushgram.nativerunner' -and $calls[-2] -ceq 'shell pm remove-user 10' -and
-        $calls[-1] -ceq 'shell cmd connectivity airplane-mode disable') "The cleanup ran out of order: $($calls[-3..-1] -join '; ')"
+    Assert-True ($calls[-4] -ceq 'shell pm uninstall --user 10 app.hushgram.nativerunner' -and $calls[-3] -ceq 'shell pm remove-user 10' -and
+        $calls[-2] -ceq 'shell settings delete secure anr_show_background' -and
+        $calls[-1] -ceq 'shell cmd connectivity airplane-mode disable') "The cleanup ran out of order: $($calls[-4..-1] -join '; ')"
     Assert-NothingLeft $device 'A clean run'
+    # A value that was set goes back as it was, and one already on is left alone.
+    $quiet = New-FakeDevice -AnrShown '0'
+    $quietRun = Invoke-FakeSession $quiet
+    Assert-True ($null -eq $quietRun.Error -and $quiet.State.Calls -contains 'shell settings put secure anr_show_background 0') "Background ANRs set to 0 were not put back: $($quietRun.Error)"
+    Assert-NothingLeft $quiet 'A run with background ANRs set to 0'
+    $shown = New-FakeDevice -AnrShown '1'
+    $shownRun = Invoke-FakeSession $shown
+    Assert-True ($null -eq $shownRun.Error -and @($shown.State.Calls | Where-Object { $_ -match '^shell settings (put|delete) ' }).Count -eq 0) "A run changed background ANRs that were already shown: $($shownRun.Error)"
+    # An answer that isn't a number stops the run before any user exists, with the network put back.
+    $odd = New-FakeDevice -AnrShown 'maybe'
+    $oddRun = Invoke-FakeSession $odd
+    Assert-True ($oddRun.Error -like "*background ANRs answered 'maybe'*") "An unreadable ANR setting was not refused: $($oddRun.Error)"
+    Assert-True (@($odd.State.Calls | Where-Object { $_ -match 'create-user|^shell settings (put|delete) ' }).Count -eq 0) 'An unreadable ANR setting still changed it or made a user.'
+    Assert-NothingLeft $odd 'An unreadable ANR setting'
 
     # Everything that has to stop a run before it creates anything.
     $refusals = @(
@@ -328,7 +354,7 @@ try {
     foreach ($refusal in $refusals) {
         $run = Invoke-FakeSession $refusal.Device
         Assert-True ($run.Error -like $refusal.Want) "$($refusal.Name) was not refused as expected: $($run.Error)"
-        $writes = @($refusal.Device.State.Calls | Where-Object { $_ -match 'create-user|airplane-mode (enable|disable)|^install|uninstall|remove-user' })
+        $writes = @($refusal.Device.State.Calls | Where-Object { $_ -match 'create-user|airplane-mode (enable|disable)|^install|uninstall|remove-user|^shell settings (put|delete) ' })
         Assert-True ($writes.Count -eq 0) "$($refusal.Name) changed the device before refusing: $($writes -join '; ')"
     }
     Assert-True ($refusals[-1].Device.State.Calls.Count -eq 0) 'A phone was asked anything past its identity.'
@@ -424,7 +450,7 @@ try {
     $stuckUser = New-FakeDevice -FailAt 'shell pm remove-user *'
     $run = Invoke-FakeSession $stuckUser
     Assert-True ($run.Error -like '*cleanup failed*remove user 10*') "A user that could not be removed went unreported: $($run.Error)"
-    Assert-True ($stuckUser.State.Airplane -ceq 'disabled' -and $stuckUser.State.RunnerUsers.Count -eq 0) 'One failed cleanup step skipped the others.'
+    Assert-True ($stuckUser.State.Airplane -ceq 'disabled' -and $stuckUser.State.RunnerUsers.Count -eq 0 -and $stuckUser.State.AnrShown -ceq 'null') 'One failed cleanup step skipped the others.'
 
     # No lease, no call.
     $unleased = New-FakeDevice
@@ -432,7 +458,7 @@ try {
     try { [void](Invoke-NativeRunnerSession -Adb 'fake-adb' -DeviceLease $null -RunnerApk 'runner.apk' -Target $target -AdbInvoker $unleased.Invoker) }
     catch { $denied = $true }
     Assert-True ($denied -and $unleased.State.Calls.Count -eq 0) 'A run reached a device without a lease.'
-    Write-Host "[native] device session: $($refusals.Count + $controlCases.Count + 12) cases passed"
+    Write-Host "[native] device session: $($refusals.Count + $controlCases.Count + 15) cases passed"
 
     # The build identity read off the target APK's dex: exactly one, or a refusal.
     New-Item -ItemType Directory -Force -Path $work | Out-Null

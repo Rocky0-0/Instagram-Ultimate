@@ -437,7 +437,8 @@ function Invoke-NativeRunnerSession {
         and its data are never touched. The network is off, and the host has seen the default
         network go away, before that user exists, so nothing the target's providers or the new
         user's system apps start can send. Each case has CaseTimeoutSeconds to finish, then the
-        target is stopped in that user and no later case runs.
+        target is stopped in that user and no later case runs. Background ANRs are shown for the
+        run and put back as they were afterwards.
 
         Emulators only: a phone's network can't be cut for one user, and the target's providers
         run before the runner does.
@@ -474,6 +475,8 @@ function Invoke-NativeRunnerSession {
     }
 
     $airplaneBefore = $null
+    $anrBefore = $null
+    $anrRaised = $false
     $networkOff = $false
     $createdUser = $null
     $runnerAttempted = $false
@@ -503,6 +506,18 @@ function Invoke-NativeRunnerSession {
             throw "The network on $serial is still up with airplane mode on (default network $defaultNetwork), so the runner won't start the target there."
         }
         $networkOff = $true
+
+        # The new user's first target start unpacks Instagram's native libraries on the main thread,
+        # which under ARM translation can outlast the bind's startup timeout. With background ANRs
+        # silent the system kills that process and the case reads "Process crashed"; shown, the
+        # process waits behind the ANR and the case runs.
+        $anr = Invoke-NativeRunnerAdb @call -Arguments @('shell', 'settings', 'get', 'secure', 'anr_show_background') -Failure 'Could not read whether background ANRs are shown'
+        $anrBefore = (@($anr.Stdout) -join '').Trim()
+        if ($anrBefore -cnotmatch '^(null|-?\d{1,9})$') { throw "Showing background ANRs answered '$anrBefore'." }
+        if ($anrBefore -ceq 'null' -or [int]$anrBefore -eq 0) {
+            $anrRaised = $true
+            [void](Invoke-NativeRunnerAdb @call -Arguments @('shell', 'settings', 'put', 'secure', 'anr_show_background', '1') -Failure 'Could not show background ANRs')
+        }
 
         $created = Invoke-NativeRunnerAdb @call -Arguments @('shell', 'pm', 'create-user', $NativeRunnerUserName)
         $newUser = [regex]::Match((@($created.Stdout) -join ' '), 'Success: created user id (\d+)')
@@ -575,6 +590,10 @@ function Invoke-NativeRunnerSession {
         # The runner went into the test user alone, so it comes out of that user alone.
         if ($runnerAttempted) { $cleanup += , @(@('shell', 'pm', 'uninstall', '--user', $createdUser, $NativeRunnerPackage), "remove $NativeRunnerPackage", $runnerInstalled) }
         if ($createdUser) { $cleanup += , @(@('shell', 'pm', 'remove-user', $createdUser), "remove user $createdUser", $true) }
+        if ($anrRaised) {
+            $anrBack = if ($anrBefore -ceq 'null') { @('shell', 'settings', 'delete', 'secure', 'anr_show_background') } else { @('shell', 'settings', 'put', 'secure', 'anr_show_background', $anrBefore) }
+            $cleanup += , @($anrBack, 'put back whether background ANRs are shown', $true)
+        }
         if ($airplaneBefore -ceq 'disabled') { $cleanup += , @(@('shell', 'cmd', 'connectivity', 'airplane-mode', 'disable'), 'turn the network back on', $true) }
         foreach ($step in $cleanup) {
             try {
