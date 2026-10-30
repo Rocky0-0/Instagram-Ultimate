@@ -1037,6 +1037,8 @@ Rounded corners on Reels	Abgerundete Ecken bei Reels
 Rounded corners on stories	Abgerundete Ecken bei Storys
 Seek bar on stories	Suchleiste in Stories
 Shows a bar near the bottom of a video story. Drag it to jump to any point in the video. Photos don't get one.	Zeigt unten in einer Video-Story eine Leiste. Zieh sie, um zu einer beliebigen Stelle im Video zu springen. Fotos bekommen keine.
+Seek bar on feed videos	Suchleiste in Feed-Videos
+Shows a bar along the bottom of the video playing in a feed. Drag it and let go to jump to that point in the video.	Zeigt eine Leiste unten an dem Video, das in einem Feed läuft. Zieh sie und lass los, um zu dieser Stelle im Video zu springen.
 Thicker story progress bar	Dickere Story-Fortschrittsleiste
 Draws the bar along the top of a story as thick as the choice below. Its segments and timing stay as they were.	Zeichnet die Leiste oben in einer Story so dick wie unten gewählt. Ihre Abschnitte und ihr Timing bleiben, wie sie waren.
 Thickness	Dicke

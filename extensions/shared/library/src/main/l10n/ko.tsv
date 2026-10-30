@@ -1036,6 +1036,8 @@ Rounded corners on Reels	Reels 둥근 모서리
 Rounded corners on stories	스토리 둥근 모서리
 Seek bar on stories	스토리 탐색 막대
 Shows a bar near the bottom of a video story. Drag it to jump to any point in the video. Photos don't get one.	동영상 스토리 아래쪽 근처에 막대를 표시합니다. 막대를 끌어 동영상의 원하는 지점으로 이동하세요. 사진에는 표시되지 않습니다.
+Seek bar on feed videos	피드 동영상 탐색 막대
+Shows a bar along the bottom of the video playing in a feed. Drag it and let go to jump to that point in the video.	피드에서 재생 중인 동영상 아래쪽에 막대를 표시합니다. 막대를 끌었다가 놓으면 동영상의 해당 지점으로 이동합니다.
 Thicker story progress bar	더 두꺼운 스토리 진행 막대
 Draws the bar along the top of a story as thick as the choice below. Its segments and timing stay as they were.	스토리 위쪽의 막대를 아래에서 고른 두께로 그립니다. 구간과 타이밍은 그대로입니다.
 Thickness	두께

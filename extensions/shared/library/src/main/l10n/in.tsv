@@ -1037,6 +1037,8 @@ Rounded corners on Reels	Sudut membulat pada Reels
 Rounded corners on stories	Sudut membulat pada cerita
 Seek bar on stories	Bilah geser di cerita
 Shows a bar near the bottom of a video story. Drag it to jump to any point in the video. Photos don't get one.	Menampilkan bilah di dekat bagian bawah cerita video. Geser bilahnya untuk melompat ke titik mana pun di video. Foto tidak mendapatkannya.
+Seek bar on feed videos	Bilah geser di video feed
+Shows a bar along the bottom of the video playing in a feed. Drag it and let go to jump to that point in the video.	Menampilkan bilah di bagian bawah video yang sedang diputar di feed. Geser lalu lepaskan untuk melompat ke titik itu di video.
 Thicker story progress bar	Bilah progres cerita lebih tebal
 Draws the bar along the top of a story as thick as the choice below. Its segments and timing stay as they were.	Menggambar bilah di bagian atas cerita setebal pilihan di bawah. Segmen dan waktunya tetap seperti semula.
 Thickness	Ketebalan

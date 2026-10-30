@@ -308,6 +308,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_tap_feed_video_to_pause", FALSE);
 
     /**
+     * A seek bar along the bottom of the video playing in a feed, which moves the video to where a
+     * drag lets go ({@link app.hushgram.extension.instagram.feed.FeedSeekBar}). Off to start.
+     */
+    public static final BooleanSetting FEED_SEEK_BAR =
+            new BooleanSetting("hushgram_feed_seek_bar", FALSE);
+
+    /**
      * A long press on a feed photo shows it zoomed in around the finger until the finger lifts, in
      * place of Instagram's own long press there ({@link app.hushgram.extension.instagram.feed.LongPressZoom}).
      * Off to start.

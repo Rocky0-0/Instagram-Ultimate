@@ -536,6 +536,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Seek bar on feed videos patch. */
+    public static boolean feedSeekBar() {
+        return false;
+    }
+
     /** Rewritten by the Long press to zoom patch. */
     public static boolean longPressZoom() {
         return false;
