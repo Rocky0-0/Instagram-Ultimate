@@ -14,6 +14,7 @@ Every HushGram release, newest first.
 * **Instagram - Seek bar on feed videos:** new patch. A bar along the bottom of the video playing in your feed lets you drag to any point in it. The switch is under Feed and starts off. Asked for in #389.
 * **Instagram - Glass tab bar:** `Blur strength` and `Tab bar opacity` under Tab bar are sliders now, 2 to 48 dp and 0 to 150 percent, and the pill follows as you drag. Both start at the old look, and older backups still restore. Asked for in #391.
 * **Instagram - HushGram settings:** When Instagram crashes in the first minute after it opens, HushGram now keeps what crashed, and the diagnostics report you save from settings includes it. Turn on Debug logging to keep later crashes too.
+* **Instagram - Group Instagram's notifications:** `Mute notification types` under Notifications stops the types you tick, like the betting and promo pushes Instagram's own notification settings can't turn off. It works with grouping off. Nothing's muted to start.
 
 ### Bug Fixes
 

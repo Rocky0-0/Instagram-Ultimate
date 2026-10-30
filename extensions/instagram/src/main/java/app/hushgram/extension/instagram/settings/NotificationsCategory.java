@@ -32,8 +32,8 @@ final class NotificationsCategory {
         if (!groups && !suggestions) return;
         PreferenceCategory notifications = category(screen, L10n.t("Notifications"), SettingsIcons.NOTIFICATIONS,
                 groups && suggestions
-                        ? L10n.t("Group Instagram's notifications, and take suggestions off the Notifications page.")
-                        : groups ? L10n.t("Group Instagram's notifications so they don't pile up.")
+                        ? L10n.t("Group or mute Instagram's notifications, and take suggestions off the Notifications page.")
+                        : groups ? L10n.t("Group or mute Instagram's notifications so they don't pile up.")
                         : L10n.t("Take suggestions and Featured off the Notifications page."));
         if (groups) {
             SwitchPreference grouping = toggle(context, Settings.GROUP_NOTIFICATIONS, L10n.t("Group notifications"),
@@ -47,6 +47,8 @@ final class NotificationsCategory {
             notifications.addPreference(grouping);
             notifications.addPreference(toggle(context, Settings.GROUP_NOTIFICATIONS_BY_TYPE, L10n.t("Group by type"),
                     L10n.t("A group for each kind of notification, such as comments or messages, in place of one group.")));
+            // Muting works with grouping off, so this row doesn't hang under the switch.
+            notifications.addPreference(page.mutedChannelsRow(context));
         }
         // Hide suggested people's switches for the Notifications page. They sat under Profiles,
         // with the family's other rows, and a search for Profiles still finds them.

@@ -118,7 +118,7 @@ public class FollowListSuggestionsSettingsTest {
         assertFalse(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.get());
         assertTrue(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.savedValue());
     }
-    /** With grouping in the build too, the Notifications page's switches come after Group by type. */
+    /** With grouping in the build too, the Notifications page's switches come after Group by type and the mute list. */
     @Test public void withGroupingTheNotificationsPageSwitchesFollowGroupByType() throws Exception {
         open(EnumSet.of(PatchFamily.NOTIFICATION_GROUPS, PatchFamily.PROFILE_SUGGESTIONS));
         android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.key);
@@ -127,9 +127,9 @@ public class FollowListSuggestionsSettingsTest {
         String[] keys = new String[notifications.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = notifications.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.GROUP_NOTIFICATIONS.key, Settings.GROUP_NOTIFICATIONS_BY_TYPE.key,
-                Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.key, Settings.HIDE_NOTIFICATION_SUGGESTIONS.key,
-                Settings.HIDE_NOTIFICATION_FEATURED.key), Arrays.asList(keys));
-        assertEquals("Group Instagram's notifications, and take suggestions off the Notifications page.",
+                Settings.MUTED_NOTIFICATION_CHANNELS.key, Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.key,
+                Settings.HIDE_NOTIFICATION_SUGGESTIONS.key, Settings.HIDE_NOTIFICATION_FEATURED.key), Arrays.asList(keys));
+        assertEquals("Group or mute Instagram's notifications, and take suggestions off the Notifications page.",
                 ((HushgramPreferenceFragment.Heading) notifications).intro);
     }
     /** A search for Profiles, where they used to be, still finds the moved rows and nothing else under Notifications. */

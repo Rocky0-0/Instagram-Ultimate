@@ -104,6 +104,7 @@ import app.hushgram.extension.instagram.feed.HiddenAccounts;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
 import app.hushgram.extension.instagram.misc.MediaCache;
+import app.hushgram.extension.instagram.misc.NotificationGroups;
 import app.hushgram.extension.instagram.misc.SettingsRows;
 import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.ShareSheetActions;
@@ -668,6 +669,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.STORY_FONTS && STORY_FONTS_ROW.equals(key);
                     belongs |= family == PatchFamily.APP_ICON && Settings.APP_ICON.key.equals(key);
                     belongs |= family == PatchFamily.SETTINGS_ROWS && Settings.HIDDEN_SETTINGS_ROWS.key.equals(key);
+                    belongs |= family == PatchFamily.NOTIFICATION_GROUPS && Settings.MUTED_NOTIFICATION_CHANNELS.key.equals(key);
                     belongs |= family == PatchFamily.SHARE_SHEET && Settings.HIDDEN_SHARE_SHEET_BUTTONS.key.equals(key);
                     belongs |= family == PatchFamily.PROFILE_TABS && (Settings.HIDDEN_PROFILE_TABS.key.equals(key)
                             || Settings.HIDDEN_OWN_PROFILE_TABS.key.equals(key));
@@ -4374,6 +4376,79 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             Settings.HIDDEN_SETTINGS_ROWS.save("");
             row.setSummary(settingsRowsSummary(""));
             for (int i = 0; i < rows.size(); i++) dialog.getListView().setItemChecked(i, true);
+        });
+    }
+
+    /** The row that opens the list of Instagram's notification types to mute. Its summary says how many are. */
+    Row mutedChannelsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(Settings.MUTED_NOTIFICATION_CHANNELS.key);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Mute notification types"));
+        row.setSummary(mutedChannelsSummary(Settings.MUTED_NOTIFICATION_CHANNELS.savedValue()));
+        row.setOnPreferenceClickListener(tapped -> {
+            showMutedChannels(row);
+            return true;
+        });
+        return row;
+    }
+
+    /** What the notification types muted in [saved] mean, for the row's summary. */
+    static String mutedChannelsSummary(String saved) {
+        int muted = NotificationGroups.mutedChannels(saved).size();
+        if (muted == 0) {
+            return L10n.t("Stops the notification types you tick, even ones Instagram's own notification settings can't turn off.");
+        }
+        return L10n.quantity(muted, "%1$d notification type is muted.", "%1$d notification types are muted.", muted);
+    }
+
+    /**
+     * Instagram's notification channels on this phone, each with a check, ticked while muted, in
+     * Instagram's own words. A change saves at once and holds back the next notification on that
+     * channel. Until Instagram has set its channels up there's nothing to list, and the list says so.
+     */
+    void showMutedChannels(Row row) {
+        Context context = getActivity();
+        if (context == null) return;
+        Set<String> muted = NotificationGroups.mutedChannels(Settings.MUTED_NOTIFICATION_CHANNELS.savedValue());
+        List<String[]> channels = NotificationGroups.offeredChannels(context, muted);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Mute notification types"));
+        if (channels.isEmpty()) {
+            show(builder.setMessage(L10n.t("Instagram hasn't set up its notification types on this phone yet. Open "
+                    + "Instagram once, then come back here.")).setPositiveButton(L10n.t("OK"), null));
+            return;
+        }
+        CharSequence[] names = new CharSequence[channels.size()];
+        boolean[] ticked = new boolean[channels.size()];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = channels.get(i)[1];
+            ticked[i] = muted.contains(channels.get(i)[0]);
+        }
+        // The dialog keeps [ticked] and re-applies its checks at each layout, so every change to a check changes it too.
+        builder.setMultiChoiceItems(names, ticked, (dialog, which, on) -> {
+            if (!allowMutation(row, true)) {
+                ticked[which] = muted.contains(channels.get(which)[0]);
+                setChecked((AlertDialog) dialog, which, ticked[which]);
+                return;
+            }
+            if (on) muted.add(channels.get(which)[0]);
+            else muted.remove(channels.get(which)[0]);
+            Settings.MUTED_NOTIFICATION_CHANNELS.save(NotificationGroups.joinChannels(muted));
+            row.setSummary(mutedChannelsSummary(Settings.MUTED_NOTIFICATION_CHANNELS.savedValue()));
+        });
+        AlertDialog dialog = show(builder.setNeutralButton(L10n.t("Unmute all"), null)
+                .setPositiveButton(L10n.t("OK"), null));
+        if (dialog == null) return;
+        // A click listener of its own, so Unmute all clears every check without closing the list.
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(tapped -> {
+            if (!allowMutation(row, true)) return;
+            muted.clear();
+            Settings.MUTED_NOTIFICATION_CHANNELS.save("");
+            row.setSummary(mutedChannelsSummary(""));
+            for (int i = 0; i < channels.size(); i++) {
+                ticked[i] = false;
+                dialog.getListView().setItemChecked(i, false);
+            }
         });
     }
 

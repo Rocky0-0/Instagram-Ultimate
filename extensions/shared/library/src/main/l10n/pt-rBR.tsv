@@ -972,7 +972,7 @@ Copy, save or hide comments.	Copie, salve ou oculte comentários.
 See who follows you back, and clear extras off profiles.	Veja quem segue você de volta e tire extras dos perfis.
 Change how Instagram looks, from its colors to its emoji.	Mude a aparência do Instagram, das cores aos emojis.
 Pick your tabs, their order and how the bar looks.	Escolha suas abas, a ordem delas e a aparência da barra.
-Group Instagram's notifications so they don't pile up.	Agrupe as notificações do Instagram para que elas não se acumulem.
+Group or mute Instagram's notifications so they don't pile up.	Agrupe ou silencie as notificações do Instagram para que elas não se acumulem.
 Keep Instagram's saved photos and videos from filling your phone.	Evite que as fotos e vídeos guardados pelo Instagram encham seu celular.
 Save photos, videos and more, and choose where they go.	Salve fotos, vídeos e mais, e escolha para onde eles vão.
 Stop background work Instagram doesn't need.	Pare o trabalho em segundo plano de que o Instagram não precisa.
@@ -1278,7 +1278,7 @@ Instagram's choice	Escolha do Instagram
 Keeps the newer bar, with Messages on it, and you can swipe sideways between every tab, even if Instagram moves your account back to the older one. Restart Instagram to see the change.	Mantém a barra mais nova, com Mensagens nela, e você pode deslizar para os lados entre todas as abas, mesmo que o Instagram volte sua conta para a antiga. Reinicie o Instagram para ver a mudança.
 Keeps the older bar, with Create on it and Messages at the top of Home. Swiping only moves between Home and the screens beside it. Restart Instagram to see the change.	Mantém a barra antiga, com Criar nela e Mensagens no topo do Início. Deslizar só alterna entre o Início e as telas ao lado. Reinicie o Instagram para ver a mudança.
 Instagram picks the tab bar for your account, and it can switch between the two on its own.	O Instagram escolhe a barra de abas da sua conta e pode trocar entre as duas sozinho.
-Group Instagram's notifications, and take suggestions off the Notifications page.	Agrupe as notificações do Instagram e tire as sugestões da página de notificações.
+Group or mute Instagram's notifications, and take suggestions off the Notifications page.	Agrupe ou silencie as notificações do Instagram e tire as sugestões da página de notificações.
 Take suggestions and Featured off the Notifications page.	Tire as sugestões e Em destaque da página de notificações.
 Version warnings	Avisos de versão
 Pause HushGram, lock these settings, or make a report when something breaks.	Pause o HushGram, bloqueie estas configurações ou crie um relatório quando algo der errado.
@@ -1302,3 +1302,9 @@ Only verified accounts	Só contas verificadas
 Only accounts that aren't verified	Só contas não verificadas
 Pinch to zoom	Pinçar para dar zoom
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	Com dois dedos você dá zoom em um reel que está tocando, como numa foto. Solte e ele volta ao normal. Reinicie o Instagram para ver a mudança.
+Mute notification types	Silenciar tipos de notificação
+Stops the notification types you tick, even ones Instagram's own notification settings can't turn off.	Bloqueia os tipos de notificação que você marcar, até os que as configurações de notificação do próprio Instagram não conseguem desativar.
+%1$d notification type is muted.	%1$d tipo de notificação está silenciado.
+%1$d notification types are muted.	%1$d tipos de notificação estão silenciados.
+Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.	O Instagram ainda não configurou os tipos de notificação neste celular. Abra o Instagram uma vez e depois volte aqui.
+Unmute all	Reativar todos

@@ -1334,6 +1334,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_group_notifications_by_type", FALSE, parent(GROUP_NOTIFICATIONS));
 
     /**
+     * The notification channels whose posts never reach the shade, as Instagram's channel ids with
+     * commas between ({@link app.hushgram.extension.instagram.misc.NotificationGroups#mutedChannels}).
+     * Nothing named is the start, so every notification posts. Read at each post, with or without
+     * {@link #GROUP_NOTIFICATIONS}.
+     */
+    public static final StringSetting MUTED_NOTIFICATION_CHANNELS =
+            new StringSetting("hushgram_muted_notification_channels", "");
+
+    /**
      * Each time Instagram goes to the background with more than 500 MB in its cache folders, they're
      * emptied ({@link app.hushgram.extension.instagram.misc.MediaCache}). Off to start.
      */

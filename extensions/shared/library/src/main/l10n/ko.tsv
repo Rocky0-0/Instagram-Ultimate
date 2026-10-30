@@ -971,7 +971,7 @@ Copy, save or hide comments.	댓글을 복사하거나 저장하거나 숨깁니
 See who follows you back, and clear extras off profiles.	나를 맞팔로우하는 사람을 확인하고 프로필의 군더더기를 없앱니다.
 Change how Instagram looks, from its colors to its emoji.	색상부터 이모티콘까지 Instagram의 모습을 바꿉니다.
 Pick your tabs, their order and how the bar looks.	탭과 탭 순서, 탭 바의 모양을 고릅니다.
-Group Instagram's notifications so they don't pile up.	Instagram 알림이 쌓이지 않도록 묶습니다.
+Group or mute Instagram's notifications so they don't pile up.	Instagram 알림이 쌓이지 않도록 묶거나 무음으로 합니다.
 Keep Instagram's saved photos and videos from filling your phone.	Instagram이 저장해 둔 사진과 동영상이 휴대폰을 채우지 않게 합니다.
 Save photos, videos and more, and choose where they go.	사진, 동영상 등을 저장하고 저장 위치를 고릅니다.
 Stop background work Instagram doesn't need.	Instagram에 필요 없는 백그라운드 작업을 멈춥니다.
@@ -1277,7 +1277,7 @@ Instagram's choice	Instagram의 선택
 Keeps the newer bar, with Messages on it, and you can swipe sideways between every tab, even if Instagram moves your account back to the older one. Restart Instagram to see the change.	메시지가 있는 새 바를 유지하며, Instagram이 계정을 이전 바로 되돌려도 모든 탭 사이를 옆으로 스와이프할 수 있습니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Keeps the older bar, with Create on it and Messages at the top of Home. Swiping only moves between Home and the screens beside it. Restart Instagram to see the change.	만들기가 있고 메시지가 홈 상단에 있는 이전 바를 유지합니다. 스와이프는 홈과 그 옆 화면 사이에서만 이동합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Instagram picks the tab bar for your account, and it can switch between the two on its own.	Instagram이 계정의 탭 바를 고르며, 두 가지 사이를 스스로 바꿀 수 있습니다.
-Group Instagram's notifications, and take suggestions off the Notifications page.	Instagram 알림을 묶고, 알림 페이지에서 추천을 없앱니다.
+Group or mute Instagram's notifications, and take suggestions off the Notifications page.	Instagram 알림을 묶거나 무음으로 하고, 알림 페이지에서 추천을 없앱니다.
 Take suggestions and Featured off the Notifications page.	알림 페이지에서 추천과 주요 항목을 없앱니다.
 Version warnings	버전 경고
 Pause HushGram, lock these settings, or make a report when something breaks.	HushGram을 일시 정지하거나, 이 설정을 잠그거나, 문제가 생기면 보고서를 만듭니다.
@@ -1301,3 +1301,9 @@ Only verified accounts	인증된 계정만
 Only accounts that aren't verified	인증되지 않은 계정만
 Pinch to zoom	두 손가락으로 확대
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	재생 중인 릴스를 사진처럼 두 손가락으로 확대합니다. 손가락을 떼면 원래대로 돌아갑니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Mute notification types	알림 유형 무음
+Stops the notification types you tick, even ones Instagram's own notification settings can't turn off.	체크한 알림 유형을 막습니다. Instagram 자체 알림 설정에서 끌 수 없는 유형도 막습니다.
+%1$d notification type is muted.	알림 유형 %1$d개가 무음입니다.
+%1$d notification types are muted.	알림 유형 %1$d개가 무음입니다.
+Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.	Instagram이 아직 이 휴대전화에 알림 유형을 만들지 않았습니다. Instagram을 한 번 연 다음 여기로 돌아오세요.
+Unmute all	모두 무음 해제
