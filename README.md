@@ -9,6 +9,7 @@ This project has no connection to Meta or to the Morphe project. Neither endorse
 ## Install
 
 1.Download the latest apk from the release
+
 2.install the apk and there you go!
 
 ## Before you sign in
