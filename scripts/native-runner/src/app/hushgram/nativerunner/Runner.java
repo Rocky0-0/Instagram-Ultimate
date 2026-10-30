@@ -7,6 +7,9 @@ package app.hushgram.nativerunner;
 import android.app.Activity;
 import android.app.Application;
 import android.app.Instrumentation;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -15,9 +18,12 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.os.Bundle;
 import android.os.Process;
+import android.service.notification.StatusBarNotification;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -25,6 +31,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -78,6 +85,14 @@ public final class Runner extends Instrumentation {
     private static final String VOICE_MUTATION = "send_voice_item_seen_marker";
     // The handler's own guard on a mutation without its message, thrown before any request exists.
     private static final String NATIVE_GUARD = "Required value was null.";
+    private static final String NOTIFICATION_GROUPS_CLASS = "app.hushgram.extension.instagram.misc.NotificationGroups";
+    // Two of the channel ids Instagram sets up (GroupNotificationsHookTest reads them from each
+    // build): the promo pushes' and the likes'. The ids the case posts with stay clear of Instagram's.
+    private static final String MUTED_CHANNEL = "ig_product_announcements";
+    private static final String KEPT_CHANNEL = "ig_likes";
+    private static final int MUTED_ID = 0x4847_0001;
+    private static final int KEPT_ID = 0x4847_0003;
+    private static final int UNMUTED_ID = 0x4847_0004;
 
     private Bundle arguments;
 
@@ -142,6 +157,8 @@ public final class Runner extends Instrumentation {
                 return visual(target, out);
             case "visual-paused":
                 return visualPaused(target, out);
+            case "notifications":
+                return notifications(target, out);
             default:
                 throw new IllegalArgumentException("Unknown case '" + name + "'");
         }
@@ -348,6 +365,114 @@ public final class Runner extends Instrumentation {
         } finally {
             save(paused, false);
             save(view, false);
+        }
+    }
+
+    /**
+     * Mute notification types on the path every Instagram notify call is sent to, NotificationGroups'
+     * stand-in, with test notifications on two of Instagram's own channel ids. With the promo
+     * channel muted, its two posts never reach the manager and are logged once, while a post on the
+     * other channel arrives as built. With the list emptied, the next promo post arrives in the same
+     * process. The user is new, so the case makes both channels itself, and it takes its
+     * notifications down and the list back to empty at the end.
+     */
+    private static boolean notifications(Context target, Bundle out) throws Exception {
+        ClassLoader loader = target.getClassLoader();
+        Class<?> utils = requireClass(loader, EXTENSION_CLASS, out);
+        Class<?> settings = requireClass(loader, SETTINGS_CLASS, out);
+        Class<?> pause = requireClass(loader, PAUSE_CLASS, out);
+        Class<?> groups = requireClass(loader, NOTIFICATION_GROUPS_CLASS, out);
+        if (utils == null || settings == null || pause == null || groups == null) return false;
+        Method standIn;
+        try {
+            standIn = groups.getMethod("notify", NotificationManager.class, int.class, Notification.class);
+        } catch (NoSuchMethodException absent) {
+            missing(out, NOTIFICATION_GROUPS_CLASS + ".notify");
+            return false;
+        }
+        NotificationManager manager = target.getSystemService(NotificationManager.class);
+        if (!manager.areNotificationsEnabled()) throw new IllegalStateException("the target can't post notifications in user " + Process.myUid() / 100000);
+        utils.getMethod("setContext", Context.class).invoke(null, target);
+        StringBuilder wrong = new StringBuilder();
+        String reason = String.valueOf(pause.getMethod("reason").invoke(null));
+        out.putString(PREFIX + "pause", reason);
+        if (!"NONE".equals(reason)) note(wrong, "this start runs paused (" + reason + ")");
+        Object muted = settings.getField("MUTED_NOTIFICATION_CHANNELS").get(null);
+        manager.createNotificationChannel(new NotificationChannel(MUTED_CHANNEL, "Product announcements", NotificationManager.IMPORTANCE_DEFAULT));
+        manager.createNotificationChannel(new NotificationChannel(KEPT_CHANNEL, "Likes", NotificationManager.IMPORTANCE_DEFAULT));
+        try {
+            save(muted, MUTED_CHANNEL);
+            standIn.invoke(null, manager, MUTED_ID, test(target, MUTED_CHANNEL));
+            standIn.invoke(null, manager, MUTED_ID + 1, test(target, MUTED_CHANNEL));
+            standIn.invoke(null, manager, KEPT_ID, test(target, KEPT_CHANNEL));
+            // The manager takes posts in order, so once the kept one shows, the muted ones would too.
+            boolean kept = shows(manager, KEPT_ID);
+            out.putString(PREFIX + "notifications.kept", kept ? "shown" : "missing");
+            if (!kept) note(wrong, "muted: the post on " + KEPT_CHANNEL + " never showed, so the muted ones' absence proves nothing");
+            String mutedSeen = (active(manager, MUTED_ID) ? "shown" : "held") + "," + (active(manager, MUTED_ID + 1) ? "shown" : "held");
+            out.putString(PREFIX + "notifications.muted", mutedSeen);
+            if (!"held,held".equals(mutedSeen)) note(wrong, "muted: the posts on " + MUTED_CHANNEL + " were " + mutedSeen + ", expected held,held");
+            int logged = mutedLines();
+            out.putString(PREFIX + "notifications.logged", Integer.toString(logged));
+            if (logged != 1) note(wrong, "muted: logged " + logged + " times, expected once");
+
+            save(muted, "");
+            standIn.invoke(null, manager, UNMUTED_ID, test(target, MUTED_CHANNEL));
+            boolean back = shows(manager, UNMUTED_ID);
+            out.putString(PREFIX + "notifications.unmuted", back ? "shown" : "missing");
+            if (!back) note(wrong, "unmuted: the next post on " + MUTED_CHANNEL + " never showed");
+        } finally {
+            // Each step on its own, so one that fails neither hides the case's own error nor skips the rest.
+            try { save(muted, ""); } catch (Exception e) { note(wrong, "cleanup: " + e); }
+            try { manager.cancelAll(); } catch (RuntimeException e) { note(wrong, "cleanup: " + e); }
+            try { manager.deleteNotificationChannel(MUTED_CHANNEL); } catch (RuntimeException e) { note(wrong, "cleanup: " + e); }
+            try { manager.deleteNotificationChannel(KEPT_CHANNEL); } catch (RuntimeException e) { note(wrong, "cleanup: " + e); }
+        }
+        if (wrong.length() > 0) out.putString(PREFIX + "detail", wrong.toString());
+        return wrong.length() == 0;
+    }
+
+    private static Notification test(Context target, String channel) {
+        return new Notification.Builder(target, channel).setSmallIcon(android.R.drawable.stat_notify_chat)
+                .setContentTitle("HushGram native runner").build();
+    }
+
+    /** Whether the notification with this id shows within five seconds. The manager posts later than notify returns. */
+    private static boolean shows(NotificationManager manager, int id) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5_000;
+        while (!active(manager, id)) {
+            if (System.currentTimeMillis() >= deadline) return false;
+            Thread.sleep(100);
+        }
+        return true;
+    }
+
+    private static boolean active(NotificationManager manager, int id) {
+        for (StatusBarNotification shown : manager.getActiveNotifications()) {
+            if (shown.getId() == id) return true;
+        }
+        return false;
+    }
+
+    /**
+     * How many of this process's log lines say the muted channel kept a notification out, read
+     * from logcat, which lets an app read its own lines. logd writes a little after Log returns.
+     */
+    private static int mutedLines() throws Exception {
+        String marker = "Notification groups: muted " + MUTED_CHANNEL + ",";
+        long deadline = System.currentTimeMillis() + 2_000;
+        while (true) {
+            int count = 0;
+            java.lang.Process logcat = new ProcessBuilder("logcat", "-d", "-v", "raw", "--pid=" + Process.myPid())
+                    .redirectErrorStream(true).start();
+            try (BufferedReader lines = new BufferedReader(new InputStreamReader(logcat.getInputStream(), StandardCharsets.UTF_8))) {
+                for (String line; (line = lines.readLine()) != null; ) {
+                    if (line.contains(marker)) count++;
+                }
+            }
+            logcat.waitFor();
+            if (count > 0 || System.currentTimeMillis() >= deadline) return count;
+            Thread.sleep(200);
         }
     }
 
@@ -592,7 +717,7 @@ public final class Runner extends Instrumentation {
         wrong.append(problem);
     }
 
-    private static void save(Object setting, boolean value) throws Exception {
+    private static void save(Object setting, Object value) throws Exception {
         Object saved = setting.getClass().getMethod("save", Object.class).invoke(setting, value);
         if (!Boolean.TRUE.equals(saved)) throw new IllegalStateException("Could not save " + setting + " as " + value);
     }

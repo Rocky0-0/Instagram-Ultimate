@@ -23,10 +23,13 @@
     that carries no message, so no request can be built: switched on, View DM photos and videos
     anonymously completes the visual receipt on the phone, and off, not ready or for the voice
     receipt, Instagram's own guard is reached. visual-paused does the same in a paused start.
-    Nothing is sent. The run fails unless every feature case passed.
+    notifications posts test notifications through the stand-in every Instagram notify call goes
+    to, on two of Instagram's channel ids: with one muted, its posts never reach the manager and
+    are logged once while the other arrives, and with the list emptied the next one arrives in
+    the same process. Nothing is sent. The run fails unless every feature case passed.
 
-    The cases run in a new Android user created for the run, which has never signed in, and that
-    user is removed afterwards along with the runner. The target app and its data in every other
+    The cases run in a new Android user created for the run, which has never signed in and is
+    allowed to post notifications, and that user is removed afterwards along with the runner. The target app and its data in every other
     user are left as they were. Instagram's Application.onCreate never runs, but Android still
     starts its content providers, so runs are emulator-only: the network is off, and seen off
     from the host and from inside the target's process, for the whole run, then turned back on.

@@ -38,7 +38,8 @@ $NativeRunnerControlCases = @('bind', 'control-positive', 'control-negative')
 # Then, only once they hold, the feature cases in this order, each with the case it builds on:
 # presence-paused needs the settings presence saves, so it runs only after presence passed, and
 # visual-paused the same for visual.
-$NativeRunnerFeatureCases = [ordered]@{ 'presence' = $null; 'presence-paused' = 'presence'; 'visual' = $null; 'visual-paused' = 'visual' }
+$NativeRunnerFeatureCases = [ordered]@{ 'presence' = $null; 'presence-paused' = 'presence'; 'visual' = $null; 'visual-paused' = 'visual'
+    'notifications' = $null }
 # What every result carries. Anything else a case reports is what it observed.
 $NativeRunnerResultKeys = @('case', 'verdict', 'package', 'versionName', 'versionCode', 'signerSha256', 'baseApkSha256', 'user',
     'process', 'network', 'missingHook', 'prerequisite', 'buildIdentity', 'error', 'detail')
@@ -523,6 +524,15 @@ function Invoke-NativeRunnerSession {
         [void](Invoke-NativeRunnerAdb @call -Arguments @('shell', 'am', 'start-user', '-w', $user) -Failure "Could not start user $user")
         $existing = Invoke-NativeRunnerAdb @call -Arguments @('shell', 'pm', 'install-existing', '--user', $user, $Target.Package) -Failure "Could not add $($Target.Package) to user $user"
         if (-not ((@($existing.Stdout) -join ' ') -match 'installed for user')) { throw (Format-HushgramAdbFailure -Message "$($Target.Package) was not added to user $user" -Result $existing) }
+        # Android 13 and later post nothing for an app without this, and the new user never granted it.
+        # Older releases have no such permission, so pm would refuse the grant.
+        $sdk = Invoke-NativeRunnerAdb @call -Arguments @('shell', 'getprop', 'ro.build.version.sdk') -Failure "Could not read the Android version of $serial"
+        $sdkLevel = 0
+        if (-not [int]::TryParse((@($sdk.Stdout) -join '').Trim(), [ref]$sdkLevel)) { throw (Format-HushgramAdbFailure -Message "$serial gave no Android version" -Result $sdk) }
+        if ($sdkLevel -ge 33) {
+            [void](Invoke-NativeRunnerAdb @call -Arguments @('shell', 'pm', 'grant', '--user', $user, $Target.Package, 'android.permission.POST_NOTIFICATIONS') `
+                -Failure "Could not let $($Target.Package) post notifications in user $user")
+        }
         $runnerAttempted = $true
         [void](Invoke-NativeRunnerAdb @call -Arguments @('install', '--user', $user, $RunnerApk) -Failure 'Could not install the runner')
         $runnerInstalled = $true
