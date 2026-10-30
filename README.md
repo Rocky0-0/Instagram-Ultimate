@@ -234,7 +234,7 @@ A few rows to know about:
 - **Date in backup file names**, under Settings backup, adds the current date and time to the suggested export name. It starts off.
 - **Pause and diagnostics** copies a quick report or saves the full one to Download/Morphe. Links, IDs, cookies and sign-in tokens are left out, but read it over for other private text before you share it. A source build also shows an `hg1:` build identity under Version in About and in the report.
 
-If Instagram crashes within a minute of starting three times in a row, HushGram pauses itself and the status card says why. Turn it back on once you've patched again or left out the patch at fault.
+If Instagram crashes within a minute of starting three times in a row, HushGram pauses itself and the status card says why. Turn it back on once you've patched again or left out the patch at fault. A crash in that first minute is kept, so the full report you save under Pause and diagnostics shows what crashed and which patches were on.
 
 ## Help
 

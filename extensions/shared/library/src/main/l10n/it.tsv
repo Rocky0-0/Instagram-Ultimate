@@ -26,7 +26,7 @@ Diagnostic data put back.	Dati diagnostici ripristinati.
 Diagnostic report copied to the clipboard.	Report diagnostico copiato negli appunti.
 Download failed	Download non riuscito
 Downloading	Download in corso
-Empties the activity log that a diagnostic report would include.	Svuota il registro attività che includerebbe un report diagnostico.
+Empties the activity log and any kept crash that a diagnostic report would include.	Svuota il registro attività e l'eventuale arresto anomalo salvato che includerebbe un report diagnostico.
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Tutti gli interruttori tranne Log di debug agiscono come se fossero off, e ciò che è stato impostato durante la patch resta attivo. Le tue impostazioni restano invariate.
 Export diagnostic report	Esporta report diagnostico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Dal prossimo avvio, tutti gli interruttori tranne Log di debug agiscono come se fossero off. Le modifiche fatte durante la patch restano attive e le tue scelte restano salvate.

@@ -26,7 +26,7 @@ Diagnostic data put back.	Data diagnostik dikembalikan.
 Diagnostic report copied to the clipboard.	Laporan diagnostik disalin ke papan klip.
 Download failed	Unduhan gagal
 Downloading	Mengunduh
-Empties the activity log that a diagnostic report would include.	Mengosongkan log aktivitas yang akan disertakan dalam laporan diagnostik.
+Empties the activity log and any kept crash that a diagnostic report would include.	Mengosongkan log aktivitas dan crash tersimpan yang akan disertakan dalam laporan diagnostik.
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Semua sakelar kecuali Pencatatan debug dianggap nonaktif, dan yang diatur saat Anda menambal tetap aktif. Pengaturan Anda tetap seperti semula.
 Export diagnostic report	Ekspor laporan diagnostik
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Mulai peluncuran berikutnya, semua sakelar kecuali Pencatatan debug dianggap nonaktif. Yang diatur saat Anda menambal tetap aktif, dan pilihan Anda tetap tersimpan.

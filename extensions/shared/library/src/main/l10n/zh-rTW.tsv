@@ -31,7 +31,7 @@ Diagnostic data put back.	已還原診斷資料。
 Diagnostic report copied to the clipboard.	已將診斷報告複製到剪貼簿。
 Download failed	下載失敗
 Downloading	下載中
-Empties the activity log that a diagnostic report would include.	清空診斷報告會包含的活動記錄。
+Empties the activity log and any kept crash that a diagnostic report would include.	清空診斷報告會包含的活動記錄與已保存的當機記錄。
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	除了「偵錯記錄」以外，所有開關都會視為關閉；套用修補程式時的變更仍會保留。您儲存的設定不會改變。
 Export diagnostic report	匯出診斷報告
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	下次啟動起，除了「偵錯記錄」以外，所有開關都會視為關閉。套用修補程式時的變更仍會保留，您選擇的設定也會繼續儲存。

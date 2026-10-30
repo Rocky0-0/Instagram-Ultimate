@@ -26,7 +26,7 @@ Diagnostic data put back.	Tanılama verileri geri getirildi.
 Diagnostic report copied to the clipboard.	Tanılama raporu panoya kopyalandı.
 Download failed	İndirme başarısız oldu
 Downloading	İndiriliyor
-Empties the activity log that a diagnostic report would include.	Bir tanılama raporuna dahil edilecek etkinlik günlüğünü boşaltır.
+Empties the activity log and any kept crash that a diagnostic report would include.	Bir tanılama raporuna dahil edilecek etkinlik günlüğünü ve kayıtlı çökme kaydını boşaltır.
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır, yamaladığında ayarlananlar ise devrede kalır. Ayarların olduğu gibi kalır.
 Export diagnostic report	Tanılama raporunu dışa aktar
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Sonraki açılıştan itibaren Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır. Yamaladığında ayarlananlar devrede kalır ve tercihlerin kayıtlı kalır.
