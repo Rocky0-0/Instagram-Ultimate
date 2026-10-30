@@ -23,16 +23,14 @@ This project has no connection to Meta or to the Morphe project. Neither endorse
 
 ## Patches
 
-There are 125 patches for `com.instagram.android`, checked against Instagram 453.0.0.57.79. Manager's simple mode includes 121 of them, so you don't need Expert mode to get any feature below. A patch that comes in this way changes nothing until you turn its switch on in HushGram settings, and each description says where that switch is. A few start on: Hide ads, Sanitize sharing links, Open links in external browser, Remove build expired popup, Hide suggested posts, Hide suggested stories, Hide Meta AI's search and posts switches, Show if a profile follows you, Download any reel, Download any story and Keep the reel speed. Story ring size and Default playback quality start on too, but they keep Instagram's own size and quality until you pick one. Tab bar layout has no switch at all and keeps the bar Instagram gives you until you pick another.
+There are 125 patches for `com.instagram.android`, checked against Instagram 453.0.0.57.79.
 
-Four patches stay out of simple mode. Tick them in Manager's patch list (Expert mode, then **Choose patches**) if you want them:
+4 extra patches come with Instagram Ultimate
 
 - **Change version code** raises the version code for good. Going back means uninstalling Instagram, and every later HushGram build needs it too.
 - **Install next to Instagram** makes the build a second app with its own package, data and sign-in (see [Two Instagrams on one phone](#two-instagrams-on-one-phone)).
 - **Pure black dark mode** rewrites Instagram's colors when you patch and has no switch to turn it off.
 - **View DM photos and videos anonymously** is a test feature until the sender's side is checked with two accounts.
-
-In Expert mode the patches are grouped under Ads, Ghost mode, Privacy, Messages, Feed, Stories, Reels, Playback, Interaction, Profiles, Interface, Downloads, Updates, Fixes and Settings, and most of those match a section in HushGram settings.
 
 | Patch | What it does | Simple mode |
 |---|---|---|
