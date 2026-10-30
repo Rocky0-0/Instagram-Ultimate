@@ -909,14 +909,14 @@ Show all settings as a list	모든 설정을 목록으로 보기
 Show settings by category	카테고리별로 설정 보기
 Tab bar opacity	탭 바 불투명도
 Tab bar height	탭 바 높이
-Clearest	가장 투명하게
-Clear	투명하게
-Frosted	젖빛 유리
 Standard	기본
 Blur strength	흐림 강도
-# context: a blur strength step of the tab bar
-Light	약하게
-Strong	강하게
+# context: the blur slider's value under its title; dp is Android's screen unit, keep it
+%1$d dp	%1$d dp
+# context: the tab bar opacity slider's value under its title
+%1$d%%	%1$d%%
+# context: a slider's value when it sits at the starting setting, %1$s is the value
+%1$s (standard)	%1$s (기본)
 Compact	컴팩트
 Tall	높게
 Tab bar corners	탭 바 모서리

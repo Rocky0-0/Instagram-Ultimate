@@ -910,14 +910,14 @@ Show all settings as a list	Mostrar todos los ajustes como lista
 Show settings by category	Mostrar los ajustes por categoría
 Tab bar opacity	Opacidad de la barra de pestañas
 Tab bar height	Altura de la barra de pestañas
-Clearest	Lo más transparente
-Clear	Transparente
-Frosted	Esmerilado
 Standard	Estándar
 Blur strength	Intensidad del desenfoque
-# context: a blur strength step of the tab bar
-Light	Suave
-Strong	Fuerte
+# context: the blur slider's value under its title; dp is Android's screen unit, keep it
+%1$d dp	%1$d dp
+# context: the tab bar opacity slider's value under its title
+%1$d%%	%1$d %%
+# context: a slider's value when it sits at the starting setting, %1$s is the value
+%1$s (standard)	%1$s (estándar)
 Compact	Compacta
 Tall	Alta
 Tab bar corners	Esquinas de la barra de pestañas

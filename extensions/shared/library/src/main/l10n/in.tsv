@@ -910,14 +910,14 @@ Show all settings as a list	Tampilkan semua pengaturan sebagai daftar
 Show settings by category	Tampilkan pengaturan menurut kategori
 Tab bar opacity	Opasitas bilah tab
 Tab bar height	Tinggi bilah tab
-Clearest	Paling bening
-Clear	Bening
-Frosted	Buram
 Standard	Standar
 Blur strength	Kekuatan blur
-# context: a blur strength step of the tab bar
-Light	Ringan
-Strong	Kuat
+# context: the blur slider's value under its title; dp is Android's screen unit, keep it
+%1$d dp	%1$d dp
+# context: the tab bar opacity slider's value under its title
+%1$d%%	%1$d%%
+# context: a slider's value when it sits at the starting setting, %1$s is the value
+%1$s (standard)	%1$s (standar)
 Compact	Ringkas
 Tall	Tinggi
 Tab bar corners	Sudut bilah tab

@@ -1062,13 +1062,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_blur", TRUE, true, parent(GLASS_TAB_BAR));
 
     /**
-     * Under {@link #GLASS_TAB_BAR_BLUR}: how strongly the pill blurs what's behind it
-     * ({@link app.hushgram.extension.instagram.misc.GlassBlur}, #289). Standard is the blur the bar has always
-     * had. The blur is made once as the bar is built, so a change shows after a restart and asks for one.
+     * Under {@link #GLASS_TAB_BAR_BLUR}: how far the pill blurs what's behind it, in dp, from a slider
+     * (#289, #391). Starts on the blur the bar has always had. Read as each frame records the backdrop,
+     * so a change shows on the bar without a restart.
      */
-    public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassBlur> GLASS_TAB_BAR_BLUR_STRENGTH =
-            new EnumSetting<>("hushgram_glass_tab_bar_blur_strength",
-                    app.hushgram.extension.instagram.misc.GlassBlur.STANDARD, true, parent(GLASS_TAB_BAR_BLUR));
+    public static final IntegerSetting GLASS_TAB_BAR_BLUR_RADIUS =
+            new IntegerSetting("hushgram_glass_tab_bar_blur_radius",
+                    app.hushgram.extension.instagram.misc.GlassTabBar.BLUR_DP, false, parent(GLASS_TAB_BAR_BLUR))
+                    .withRange(2, 48);
 
     /**
      * Under {@link #GLASS_TAB_BAR}: Home and the other tabs run down behind the bar, so the glass has
@@ -1132,12 +1133,43 @@ public class Settings extends BaseSettings {
                     app.hushgram.extension.instagram.misc.HapticStyle.SYSTEM, parent(GLASS_TAB_BAR_HAPTICS));
 
     /**
-     * Under {@link #GLASS_TAB_BAR}: how see-through the pill is ({@link app.hushgram.extension.instagram.misc.GlassOpacity}).
-     * Starts on the look the bar has always had. A change shows after a restart, so it asks for one.
+     * Under {@link #GLASS_TAB_BAR}: how strong the pill's tint is, in percent of the look the bar has always
+     * had, from a slider (#391). Lower is clearer, higher more frosted. Read as the pill draws, so a change
+     * shows on the bar without a restart.
      */
-    public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassOpacity> GLASS_TAB_BAR_OPACITY =
-            new EnumSetting<>("hushgram_glass_tab_bar_opacity",
-                    app.hushgram.extension.instagram.misc.GlassOpacity.STANDARD, true, parent(GLASS_TAB_BAR));
+    public static final IntegerSetting GLASS_TAB_BAR_OPACITY =
+            new IntegerSetting("hushgram_glass_tab_bar_opacity_percent", 100, false, parent(GLASS_TAB_BAR))
+                    .withRange(0, 150);
+
+    /** Where the steps the blur and opacity had before their sliders were saved (#391). */
+    static final String OLD_GLASS_BLUR_KEY = "hushgram_glass_tab_bar_blur_strength";
+    static final String OLD_GLASS_OPACITY_KEY = "hushgram_glass_tab_bar_opacity";
+
+    static {
+        carryOverGlassSteps();
+    }
+
+    /**
+     * A step an older build saved becomes the value it drew, once, unless the slider already moved, and
+     * its key goes. A second process can't save, so it leaves the step for the main one.
+     */
+    static void carryOverGlassSteps() {
+        String blur = Setting.preferences.getString(OLD_GLASS_BLUR_KEY, "");
+        Integer blurDp = app.hushgram.extension.instagram.misc.GlassBlur.dpOf(blur);
+        if (!blur.isEmpty() && (blurDp == null || carryOver(GLASS_TAB_BAR_BLUR_RADIUS, blurDp))) {
+            Setting.preferences.removeKey(OLD_GLASS_BLUR_KEY);
+        }
+        String opacity = Setting.preferences.getString(OLD_GLASS_OPACITY_KEY, "");
+        Integer percent = app.hushgram.extension.instagram.misc.GlassOpacity.percentOf(opacity);
+        if (!opacity.isEmpty() && (percent == null || carryOver(GLASS_TAB_BAR_OPACITY, percent))) {
+            Setting.preferences.removeKey(OLD_GLASS_OPACITY_KEY);
+        }
+    }
+
+    private static boolean carryOver(IntegerSetting slider, int value) {
+        if (!slider.savedValue().equals(slider.defaultValue)) return true;
+        return slider.save(value);
+    }
 
     /**
      * Under {@link #GLASS_TAB_BAR}: how tall the pill is ({@link app.hushgram.extension.instagram.misc.GlassHeight}).

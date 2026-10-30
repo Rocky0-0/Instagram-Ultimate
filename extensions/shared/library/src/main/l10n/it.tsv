@@ -910,14 +910,14 @@ Show all settings as a list	Mostra tutte le impostazioni come elenco
 Show settings by category	Mostra le impostazioni per categoria
 Tab bar opacity	Opacità della barra delle schede
 Tab bar height	Altezza della barra delle schede
-Clearest	Più trasparente
-Clear	Trasparente
-Frosted	Smerigliata
 Standard	Standard
 Blur strength	Intensità della sfocatura
-# context: a blur strength step of the tab bar
-Light	Leggera
-Strong	Forte
+# context: the blur slider's value under its title; dp is Android's screen unit, keep it
+%1$d dp	%1$d dp
+# context: the tab bar opacity slider's value under its title
+%1$d%%	%1$d%%
+# context: a slider's value when it sits at the starting setting, %1$s is the value
+%1$s (standard)	%1$s (standard)
 Compact	Compatta
 Tall	Alta
 Tab bar corners	Angoli della barra delle schede

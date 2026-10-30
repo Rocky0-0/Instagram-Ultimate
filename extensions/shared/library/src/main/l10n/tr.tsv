@@ -910,14 +910,14 @@ Show all settings as a list	Tüm ayarları liste olarak göster
 Show settings by category	Ayarları kategoriye göre göster
 Tab bar opacity	Sekme çubuğu opaklığı
 Tab bar height	Sekme çubuğu yüksekliği
-Clearest	En saydam
-Clear	Saydam
-Frosted	Buzlu
 Standard	Standart
 Blur strength	Bulanıklık gücü
-# context: a blur strength step of the tab bar
-Light	Hafif
-Strong	Güçlü
+# context: the blur slider's value under its title; dp is Android's screen unit, keep it
+%1$d dp	%1$d dp
+# context: the tab bar opacity slider's value under its title
+%1$d%%	%%%1$d
+# context: a slider's value when it sits at the starting setting, %1$s is the value
+%1$s (standard)	%1$s (standart)
 Compact	Kompakt
 Tall	Yüksek
 Tab bar corners	Sekme çubuğu köşeleri

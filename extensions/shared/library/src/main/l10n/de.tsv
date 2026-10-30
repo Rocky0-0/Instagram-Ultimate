@@ -910,14 +910,14 @@ Show all settings as a list	Alle Einstellungen als Liste anzeigen
 Show settings by category	Einstellungen nach Kategorie anzeigen
 Tab bar opacity	Deckkraft der Tab-Leiste
 Tab bar height	Höhe der Tab-Leiste
-Clearest	Am klarsten
-Clear	Klar
-Frosted	Milchglas
 Standard	Standard
 Blur strength	Stärke der Unschärfe
-# context: a blur strength step of the tab bar
-Light	Leicht
-Strong	Stark
+# context: the blur slider's value under its title; dp is Android's screen unit, keep it
+%1$d dp	%1$d dp
+# context: the tab bar opacity slider's value under its title
+%1$d%%	%1$d %%
+# context: a slider's value when it sits at the starting setting, %1$s is the value
+%1$s (standard)	%1$s (Standard)
 Compact	Kompakt
 Tall	Hoch
 Tab bar corners	Ecken der Tab-Leiste

@@ -910,14 +910,14 @@ Show all settings as a list	以清單顯示所有設定
 Show settings by category	依分類顯示設定
 Tab bar opacity	分頁列不透明度
 Tab bar height	分頁列高度
-Clearest	最透明
-Clear	透明
-Frosted	霧面
 Standard	標準
 Blur strength	模糊強度
-# context: a blur strength step of the tab bar
-Light	輕微
-Strong	強烈
+# context: the blur slider's value under its title; dp is Android's screen unit, keep it
+%1$d dp	%1$d dp
+# context: the tab bar opacity slider's value under its title
+%1$d%%	%1$d%%
+# context: a slider's value when it sits at the starting setting, %1$s is the value
+%1$s (standard)	%1$s (標準)
 Compact	緊湊
 Tall	加高
 Tab bar corners	分頁列圓角
