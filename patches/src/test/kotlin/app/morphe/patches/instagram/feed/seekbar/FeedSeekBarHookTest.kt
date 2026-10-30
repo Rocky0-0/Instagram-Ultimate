@@ -44,10 +44,10 @@ class FeedSeekBarHookTest {
     }
 
     /**
-     * On 453's arm64 build the patch finds the feed's player (05cV) and its progress callback (G3U),
-     * the holder's view (0Ffm's CWV) and the controller's seek (03Nh's A0T, the one a SeekBar
-     * listener's onStopTrackingTouch makes), fills both stubs and hands the callback to the extension
-     * first thing. The x86_64 build names them 05cU, 0Feo and 03Nj.
+     * On 453.0.0.57.79's arm64 build 385914557 the patch finds the feed's player (05cP) and its
+     * progress callback (G3c), the holder's view (0Fai's CWW) and the controller's seek (03Nk's A0T,
+     * the one a SeekBar listener's onStopTrackingTouch makes), fills both stubs and hands the callback
+     * to the extension first thing. Each build has its own names; 385914510's player is 05nU.
      */
     @Test
     fun eachDeclaredBuildFindsTheSeekAndHooksThePlayer() {
@@ -56,10 +56,10 @@ class FeedSeekBarHookTest {
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
                 val sites = builds(bundle, bundle.name)
-                if (version == "453.0.0.55.79") {
+                if (version == "453.0.0.57.79") {
                     assertEquals(
                         "${bundle.name}: the player, its progress callback, the holder's view and the seek",
-                        listOf("LX/05cV;", "G3U", "LX/0Ffm;->CWV()Landroid/view/View;", "LX/03Nh;->A0T(IZ)V"),
+                        listOf("LX/05cP;", "G3c", "LX/0Fai;->CWW()Landroid/view/View;", "LX/03Nk;->A0T(IZ)V"),
                         listOf(sites.player, sites.progress, sites.view.toString(), sites.seek.toString()),
                     )
                 }

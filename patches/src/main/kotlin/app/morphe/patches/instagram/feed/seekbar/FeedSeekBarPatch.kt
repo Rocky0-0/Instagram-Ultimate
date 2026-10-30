@@ -46,12 +46,12 @@ private const val VIEW = "Landroid/view/View;"
  * Puts a seek bar along the bottom of the video playing in a feed (#389). See FeedSeekBar in the
  * extension. In the default selection with its switch off.
  *
- * On 453's arm64 build the feed's video player (05cV; 05cU on x86_64, 05oF on 32-bit, so it's found by
- * shape) hears where its video is through a progress callback (G3U), the one (int position, int
- * length, boolean) method holding [COVER_REPORT]. That callback reads the player's current item (A01),
- * the item's video holder (A0A, an interface) and the holder's view (CWV, the video's cover image, which
- * Instagram hides while the video plays but which shares the video's frame), and asks the player's
- * controller (A00, 03Nh) whether it's playing. The patch hands every callback to
+ * On 453.0.0.57.79's arm64 build 385914557 the feed's video player (05cP; 05oF and 05nU on the 32-bit
+ * builds, so it's found by shape) hears where its video is through a progress callback (G3c), the one
+ * (int position, int length, boolean) method holding [COVER_REPORT]. That callback reads the player's
+ * current item (A01), the item's video holder (A0A, an interface) and the holder's view (CWW, the
+ * video's cover image, which Instagram hides while the video plays but which shares the video's frame),
+ * and asks the player's controller (A00, 03Nk) whether it's playing. The patch hands every callback to
  * the extension first thing, and fills the extension's stubs with those reads and the controller's
  * seek: the (int, boolean) call Instagram's own feed scrubber, a SeekBar listener, makes on that
  * controller when a drag lets go (A0T). Nothing else of Instagram's changes.
@@ -122,7 +122,9 @@ internal fun BytecodePatchContext.findFeedSeek(): FeedSeekSites {
     val code = callback.code()
     if (code.any { it.method()?.definingClass == FEED_SEEK_BAR }) refuse("${player.type}->${callback.name} already calls $FEED_SEEK_BAR")
 
-    val views = code.filter { it.opcode == Opcode.INVOKE_INTERFACE }.mapNotNull { it.method() }
+    // 453.0.0.57.79's 385914510 keeps the holder in v17 and asks it with invoke-interface/range, so
+    // every call here is taken in either form.
+    val views = code.filter { it.opcode in INTERFACE_CALLS }.mapNotNull { it.method() }
         .filter { it.parameterTypes.isEmpty() && it.returnType == VIEW }.distinctBy(Any::toString)
     val view = views.singleOrNull() ?: refuse("expected ${player.type}->${callback.name} to ask one interface for a view, found ${views.size}")
     val reads = code.filter { it.opcode == Opcode.IGET_OBJECT }.mapNotNull { it.field() }.distinctBy(Any::toString)
@@ -133,13 +135,13 @@ internal fun BytecodePatchContext.findFeedSeek(): FeedSeekSites {
     val item = items.singleOrNull()
         ?: refuse("expected ${player.type}->${callback.name} to read one ${holder.definingClass} field of the player's, found ${items.size}")
 
-    val asked = code.filter { it.opcode == Opcode.INVOKE_VIRTUAL }.mapNotNull { it.method() }
+    val asked = code.filter { it.opcode in VIRTUAL_CALLS }.mapNotNull { it.method() }
         .filter { it.parameterTypes.isEmpty() && it.returnType == "Z" }.map { it.definingClass }.toSet()
     val controllers = reads.filter { it.definingClass == player.type && it.type in asked }
     val controller = controllers.singleOrNull()
         ?: refuse("expected ${player.type}->${callback.name} to read one controller field of the player's, found ${controllers.size}")
     val seeks = releases.flatMap { release ->
-        release.code().filter { it.opcode == Opcode.INVOKE_VIRTUAL }.mapNotNull { it.method() }
+        release.code().filter { it.opcode in VIRTUAL_CALLS }.mapNotNull { it.method() }
             .filter { it.definingClass == controller.type && it.parameterTypes.map(Any::toString) == listOf("I", "Z") && it.returnType == "V" }
     }.distinctBy(Any::toString)
     val seek = seeks.singleOrNull()
@@ -164,6 +166,9 @@ internal fun BytecodePatchContext.findFeedSeek(): FeedSeekSites {
     }
     return FeedSeekSites(player.type, callback.name, item, holder, view, controller, seek)
 }
+
+private val INTERFACE_CALLS = setOf(Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)
+private val VIRTUAL_CALLS = setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE)
 
 /** The extension's stubs, by name and shape. */
 private val STUBS = listOf(

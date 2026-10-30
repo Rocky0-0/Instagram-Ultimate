@@ -607,7 +607,7 @@ start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stopCached(Ljava
 # Its placeholder at a position (045b.A0X), the one method of that class handed an Integer that
 # calls the add, asks stopCached first. Left out, a chat's reels end on a gray reel that never
 # loads; twice or elsewhere, some other viewer loses its loading placeholder.
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->placeholder(Ljava/lang/Object;Z)Z in instance (Ljava/util/List;Z)V holding ClipsViewerAdapter.addClipsItems
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->placeholder(Ljava/lang/Object;I)Z in instance (Ljava/util/List;Z)V holding ClipsViewerAdapter.addClipsItems
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stopCached(Ljava/lang/Object;)Z in instance (Ljava/lang/Integer;)V calling instance LX/*;->*(Ljava/util/List;Z)V class-holding ClipsViewerAdapter.addClipsItems
 # Restore trust on re-signed builds puts its call first in the package signer reader, which its
 # fingerprint picks by the SigningInfo and PackageInfo calls it makes. The reader holds no string,
@@ -2288,11 +2288,11 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->released(Ljava/l
 start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;L*;L*;L*;Lcom/instagram/feed/media/Media;L*;Ljava/util/List;ZZ)V pooled holding ContextualFeedFragment.ARGUMENT_HOST_PROFILE_USER_ID
 once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;L*;L*;L*;Lcom/instagram/feed/media/Media;L*;Ljava/util/List;ZZ)V pooled holding ContextualFeedFragment.ARGUMENT_HOST_PROFILE_USER_ID
 # Seek bar on feed videos (#389) hands the feed video player's progress callback, the one instance
-# (int, int, boolean) void method holding the player's persistent cover report (05cV.G3U on 453's
-# 385914283, 05cU.G3U on 385914285, 05oF.G3u on 385914282), to FeedSeekBar.progress first thing.
+# (int, int, boolean) void method holding the player's persistent cover report (05cP.G3c on
+# 453.0.0.57.79's 385914557, 05nU on 385914510), to FeedSeekBar.progress first thing.
 # Left out, the switch shows no bar; later or twice, it isn't the call the patch wrote. The reader's
-# view and seekTo, filled with the player's holder view (0Ffm.CWV on 385914283) and its controller's
-# seek (03Nh.A0T on 385914283, the call Instagram's
+# view and seekTo, filled with the player's holder view (0Fai.CWW on 385914557) and its controller's
+# seek (03Nk.A0T on 385914557, the call Instagram's
 # own scrubber makes when a drag lets go), have to leave the extension before they return. Left
 # unfilled, the switch shows no bar. FeedSeekBarHookTest finds them on every 453 build.
 start-call Lapp/hushgram/extension/instagram/feed/FeedSeekBar;->progress(Ljava/lang/Object;II)V in instance (IIZ)V holding IgFeedVideoPlayer:\sPersistent\sVisible\sCover\sImage
