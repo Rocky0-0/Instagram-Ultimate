@@ -23,7 +23,7 @@ This project has no connection to Meta or to the Morphe project. Neither endorse
 
 ## Patches
 
-There are 125 patches for `com.instagram.android`, checked against Instagram 453.0.0.57.79.
+There are 125 patches for `com.instagram.android`, checked against Instagram 456.0.0.53.78
 
 4 extra patches come with Instagram Ultimate
 
